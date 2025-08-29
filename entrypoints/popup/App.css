@@ -1,0 +1,265 @@
+/* Import Google Fonts - Lexend */
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap');
+
+/* CSS Variables for theming */
+:root {
+  /* Bitcoin orange theme */
+  --bitcoin-orange: #F7931A;
+  --bitcoin-orange-light: #FFB84D;
+  --bitcoin-orange-dark: #E8841A;
+  
+  /* Fee status colors */
+  --fee-low: #4CAF50;
+  --fee-medium: #FF9800;
+  --fee-high: #F44336;
+  
+  /* System colors - light theme */
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F8FAFC;
+  --text-primary: #1E293B;
+  --text-secondary: #64748B;
+  --border-color: #E2E8F0;
+}
+
+/* Dark theme support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-primary: #0F172A;
+    --bg-secondary: #1E293B;
+    --text-primary: #F1F5F9;
+    --text-secondary: #94A3B8;
+    --border-color: #334155;
+  }
+}
+
+/* Reset and base styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Lexend', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+/* Popup container - exactly 400x300px */
+.popup-container {
+  width: 400px;
+  height: 300px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  overflow: hidden;
+}
+
+/* Header section */
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  height: 56px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.popup-header h1 {
+  font-family: 'Lexend', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.settings-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+
+.settings-btn:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+/* Fee cards section */
+.fee-cards {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px;
+  height: 160px;
+}
+
+.fee-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100px;
+  height: 120px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  cursor: default;
+  position: relative;
+}
+
+.fee-card.selected {
+  border: 2px solid var(--bitcoin-orange);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(247, 147, 26, 0.15);
+}
+
+.fee-indicator {
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.fee-value {
+  font-family: 'Lexend', sans-serif;
+  font-weight: 600;
+  font-size: 18px;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.fee-unit {
+  font-family: 'Lexend', sans-serif;
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.fee-label {
+  font-family: 'Lexend', sans-serif;
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-align: center;
+  line-height: 1.2;
+}
+
+.selected-indicator {
+  position: absolute;
+  bottom: -8px;
+  font-size: 12px;
+  color: var(--bitcoin-orange);
+  font-weight: bold;
+}
+
+/* Status section */
+.status-section {
+  padding: 16px 20px;
+  margin-top: auto;
+  border-top: 1px solid var(--border-color);
+  height: 84px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.status-message {
+  font-family: 'Lexend', sans-serif;
+  font-size: 12px;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.last-update {
+  font-family: 'Lexend', sans-serif;
+  font-size: 11px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Loading state */
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  gap: 16px;
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border-color);
+  border-top: 3px solid var(--bitcoin-orange);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loading p {
+  font-family: 'Lexend', sans-serif;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Error state */
+.error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  gap: 16px;
+  padding: 20px;
+  text-align: center;
+}
+
+.error p {
+  font-family: 'Lexend', sans-serif;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.retry-btn {
+  background: var(--bitcoin-orange);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-family: 'Lexend', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.retry-btn:hover {
+  background: var(--bitcoin-orange-dark);
+}
+
+/* Fee level specific styles */
+.fee-card.low .fee-indicator {
+  color: var(--fee-low);
+}
+
+.fee-card.medium .fee-indicator {
+  color: var(--fee-medium);
+}
+
+.fee-card.high .fee-indicator {
+  color: var(--fee-high);
+}
