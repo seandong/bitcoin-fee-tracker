@@ -247,8 +247,21 @@ body {
   transition: background 0.2s ease;
 }
 
-.retry-btn:hover {
+.retry-btn:hover:not(:disabled) {
   background: var(--bitcoin-orange-dark);
+}
+
+.retry-btn:disabled {
+  background: var(--text-secondary);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.network-status {
+  font-family: 'Lexend', sans-serif;
+  font-size: 12px;
+  color: var(--fee-high);
+  margin-top: 4px;
 }
 
 /* Fee level specific styles */

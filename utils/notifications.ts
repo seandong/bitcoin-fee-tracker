@@ -70,16 +70,37 @@ export async function sendFeeAlert(feeData: FeeData): Promise<boolean> {
 }
 
 /**
+ * Check notification permission status
+ */
+export async function getNotificationPermission(): Promise<'granted' | 'denied' | 'unknown'> {
+  try {
+    const permission = await browser.notifications.getPermissionLevel();
+    return permission === 'granted' ? 'granted' : 'denied';
+  } catch (error) {
+    console.error('Failed to check notification permission:', error);
+    return 'unknown';
+  }
+}
+
+/**
  * Request notification permission if not granted
  */
 export async function ensureNotificationPermission(): Promise<boolean> {
   try {
-    const permission = await browser.notifications.getPermissionLevel();
-    return permission === 'granted';
+    const currentPermission = await getNotificationPermission();
+    return currentPermission === 'granted';
   } catch (error) {
     console.error('Failed to check notification permission:', error);
     return false;
   }
+}
+
+/**
+ * Check if notifications are supported
+ */
+export function isNotificationSupported(): boolean {
+  return typeof browser !== 'undefined' && 
+         typeof browser.notifications !== 'undefined';
 }
 
 /**

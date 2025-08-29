@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getUserSettings, updateSetting } from '@/utils/storage';
+import { getNotificationPermission, isNotificationSupported } from '@/utils/notifications';
 import { PRIORITIES } from '@/utils/constants';
 import type { StorageData, Priority } from '@/utils/types';
 
@@ -8,10 +9,19 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [notificationPermission, setNotificationPermission] = useState<'granted' | 'denied' | 'unknown'>('unknown');
 
   useEffect(() => {
     loadSettings();
+    checkNotificationPermission();
   }, []);
+
+  const checkNotificationPermission = async () => {
+    if (isNotificationSupported()) {
+      const permission = await getNotificationPermission();
+      setNotificationPermission(permission);
+    }
+  };
 
   const loadSettings = async () => {
     try {
@@ -141,13 +151,23 @@ function App() {
                 type="checkbox"
                 checked={settings.notificationsEnabled}
                 onChange={handleNotificationToggle}
-                disabled={saving}
+                disabled={saving || notificationPermission === 'denied'}
               />
               Enable fee notifications
             </label>
             <p className="setting-description">
               Get notified when Bitcoin fees drop below your threshold
             </p>
+            {notificationPermission === 'denied' && (
+              <div className="permission-warning">
+                ⚠️ Notification permission is denied. Please enable notifications in your browser settings to use this feature.
+              </div>
+            )}
+            {notificationPermission === 'granted' && settings.notificationsEnabled && (
+              <div className="permission-success">
+                ✅ Notifications are enabled and working
+              </div>
+            )}
           </div>
 
           {settings.notificationsEnabled && (

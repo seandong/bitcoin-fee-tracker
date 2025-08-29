@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { getUserSettings, getCachedFeeData } from '@/utils/storage';
 import { PRIORITIES, THEME_COLORS } from '@/utils/constants';
 import { getFeeLevel } from '@/utils/badge';
+import { isOnline, addNetworkStatusListener } from '@/utils/network';
 import type { FeeData, StorageData, Priority } from '@/utils/types';
 import './App.css';
 
@@ -11,10 +12,25 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [isOffline, setIsOffline] = useState(!isOnline());
 
   useEffect(() => {
     loadData();
-  }, []);
+
+    // Set up network status monitoring
+    const cleanupNetworkListener = addNetworkStatusListener(
+      () => {
+        setIsOffline(false);
+        // Auto-refresh data when coming back online
+        if (error || !feeData) {
+          loadData();
+        }
+      },
+      () => setIsOffline(true)
+    );
+
+    return cleanupNetworkListener;
+  }, [error, feeData]);
 
   const loadData = async () => {
     try {
@@ -27,14 +43,27 @@ function App() {
       ]);
 
       setSettings(userSettings);
-      setFeeData(cachedFeeData);
       
-      if (userSettings.lastUpdate) {
-        setLastUpdate(new Date(userSettings.lastUpdate));
+      if (cachedFeeData) {
+        setFeeData(cachedFeeData);
+        if (userSettings.lastUpdate) {
+          setLastUpdate(new Date(userSettings.lastUpdate));
+        }
+      } else {
+        // No cached data available, but not necessarily an error
+        if (isOnline()) {
+          setError('No fee data available yet. Please wait for initial data fetch.');
+        } else {
+          setError('You are offline. Please check your internet connection.');
+        }
       }
     } catch (err) {
       console.error('Failed to load data:', err);
-      setError('Failed to load fee data');
+      if (isOnline()) {
+        setError('Failed to load fee data. Please try again.');
+      } else {
+        setError('You are offline. Please check your internet connection.');
+      }
     } finally {
       setLoading(false);
     }
@@ -95,12 +124,17 @@ function App() {
       <div className="popup-container">
         <div className="popup-header">
           <h1>⚡ BTC Fee Tracker</h1>
-          <button className="settings-btn" onClick={openOptions}>⚙️</button>
+          <button className="settings-btn" onClick={openOptions} title="Open Settings">⚙️</button>
         </div>
         <div className="error">
-          <p>⚠️ {error || 'No fee data available'}</p>
-          <button onClick={loadData} className="retry-btn">
-            Retry
+          <p>{isOffline ? '📡' : '⚠️'} {error || 'No fee data available'}</p>
+          {isOffline && <p className="network-status">🔴 Offline</p>}
+          <button 
+            onClick={loadData} 
+            className="retry-btn"
+            disabled={isOffline}
+          >
+            {isOffline ? 'Waiting for connection...' : 'Retry'}
           </button>
         </div>
       </div>
@@ -111,7 +145,7 @@ function App() {
     <div className="popup-container">
       <div className="popup-header">
         <h1>⚡ BTC Fee Tracker</h1>
-        <button className="settings-btn" onClick={openOptions}>⚙️</button>
+        <button className="settings-btn" onClick={openOptions} title="Open Settings">⚙️</button>
       </div>
 
       <div className="fee-cards">
@@ -124,6 +158,7 @@ function App() {
             <div 
               key={priority.key}
               className={`fee-card ${level} ${isSelected ? 'selected' : ''}`}
+              title={`${priority.name}: ${Math.round(feeValue)} sat/vB${isSelected ? ' (currently displayed on badge)' : ''}`}
             >
               <div className="fee-indicator">
                 {level === 'low' && '🟢'}
