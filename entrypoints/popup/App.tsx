@@ -3,7 +3,9 @@ import { getUserSettings, getCachedFeeData } from '@/utils/storage';
 import { PRIORITIES, THEME_COLORS } from '@/utils/constants';
 import { getFeeLevel } from '@/utils/badge';
 import { isOnline, addNetworkStatusListener } from '@/utils/network';
-import type { FeeData, StorageData, Priority } from '@/utils/types';
+import { Icons } from '@/utils/icons';
+import { fetchBlockHeight } from '@/utils/api';
+import type { FeeData, StorageData, Priority, ThemeMode } from '@/utils/types';
 import './App.css';
 
 function App() {
@@ -13,28 +15,68 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [isOffline, setIsOffline] = useState(!isOnline());
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [blockHeight, setBlockHeight] = useState<number | null>(null);
+
+  const applyTheme = (theme: ThemeMode) => {
+    const html = document.documentElement;
+    
+    if (theme === 'system') {
+      html.removeAttribute('data-theme');
+    } else {
+      html.setAttribute('data-theme', theme);
+    }
+  };
 
   useEffect(() => {
     loadData();
+    loadBlockHeight();
+    
+    // Apply theme when settings are loaded
+    if (settings?.theme) {
+      applyTheme(settings.theme);
+    }
 
     // Set up network status monitoring
     const cleanupNetworkListener = addNetworkStatusListener(
       () => {
         setIsOffline(false);
         // Auto-refresh data when coming back online
-        if (error || !feeData) {
-          loadData();
-        }
+        loadData();
+        loadBlockHeight();
       },
       () => setIsOffline(true)
     );
 
-    return cleanupNetworkListener;
-  }, [error, feeData]);
+    // Set up auto-refresh interval (every 30 seconds)
+    const refreshInterval = setInterval(() => {
+      if (!isOffline && !loading) {
+        loadData();
+        loadBlockHeight();
+      }
+    }, 30000);
 
-  const loadData = async () => {
+    // Update current time every second for accurate "time ago" display
+    const timeInterval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => {
+      cleanupNetworkListener();
+      clearInterval(refreshInterval);
+      clearInterval(timeInterval);
+    };
+  }, [isOffline, loading]);
+
+  const loadData = async (isManualRefresh = false) => {
     try {
-      setLoading(true);
+      if (isManualRefresh) {
+        setIsRefreshing(true);
+      } else if (!isInitialized) {
+        setLoading(true);
+      }
       setError(null);
 
       const [userSettings, cachedFeeData] = await Promise.all([
@@ -43,6 +85,11 @@ function App() {
       ]);
 
       setSettings(userSettings);
+    
+    // Apply theme
+    if (userSettings.theme) {
+      applyTheme(userSettings.theme);
+    }
       
       if (cachedFeeData) {
         setFeeData(cachedFeeData);
@@ -66,25 +113,55 @@ function App() {
       }
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
+      setIsInitialized(true);
     }
+  };
+
+  const loadBlockHeight = async () => {
+    try {
+      const response = await fetchBlockHeight();
+      if (response.success && response.data) {
+        setBlockHeight(response.data.height);
+      }
+    } catch (error) {
+      console.error('Failed to load block height:', error);
+    }
+  };
+
+  const handleManualRefresh = () => {
+    if (!isRefreshing && !isOffline) {
+      loadData(true);
+      loadBlockHeight();
+    }
+  };
+
+  const openMempool = () => {
+    browser.tabs.create({ url: 'https://mempool.space' });
   };
 
   const openOptions = () => {
     browser.runtime.openOptionsPage();
   };
 
+  const openAlertSettings = () => {
+    // 打开新的告警设置页面
+    browser.tabs.create({ url: browser.runtime.getURL('/alert-settings.html') });
+  };
+
   const formatTimeAgo = (date: Date): string => {
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffMs = currentTime.getTime() - date.getTime();
+    const diffSecs = Math.floor(diffMs / 1000);
+    const diffMins = Math.floor(diffSecs / 60);
     
-    if (diffMins < 1) return 'Just now';
-    if (diffMins === 1) return '1 minute ago';
-    if (diffMins < 60) return `${diffMins} minutes ago`;
+    if (diffSecs < 30) return 'Just now';
+    if (diffSecs < 60) return `${diffSecs}s ago`;
+    if (diffMins === 1) return '1m ago';
+    if (diffMins < 60) return `${diffMins}m ago`;
     
     const diffHours = Math.floor(diffMins / 60);
-    if (diffHours === 1) return '1 hour ago';
-    return `${diffHours} hours ago`;
+    if (diffHours === 1) return '1h ago';
+    return `${diffHours}h ago`;
   };
 
   const getFeeStatusMessage = (): string => {
@@ -109,10 +186,10 @@ function App() {
     return (
       <div className="popup-container">
         <div className="popup-header">
-          <h1>⚡ BTC Fee Tracker</h1>
+          <h1><Icons.CurrencyBtc size={16} color="var(--text-tertiary)" weight="regular" /> BTC Fee Tracker</h1>
         </div>
         <div className="loading">
-          <div className="loading-spinner"></div>
+          <Icons.Loader2 size={32} color="var(--primary)" className="loading-spinner" />
           <p>Loading fee data...</p>
         </div>
       </div>
@@ -123,12 +200,22 @@ function App() {
     return (
       <div className="popup-container">
         <div className="popup-header">
-          <h1>⚡ BTC Fee Tracker</h1>
-          <button className="settings-btn" onClick={openOptions} title="Open Settings">⚙️</button>
+          <h1><Icons.CurrencyBtc size={16} color="var(--text-tertiary)" weight="regular" /> BTC Fee Tracker</h1>
+          <button className="settings-btn" onClick={openOptions} title="Open Settings">
+            <Icons.Settings size={18} color="var(--text-secondary)" />
+          </button>
         </div>
         <div className="error">
-          <p>{isOffline ? '📡' : '⚠️'} {error || 'No fee data available'}</p>
-          {isOffline && <p className="network-status">🔴 Offline</p>}
+          <p>
+            {isOffline ? <Icons.WifiOff size={16} color="var(--fee-high)" /> : <Icons.AlertTriangle size={16} color="var(--fee-medium)" />}
+            <span>{error || 'No fee data available'}</span>
+          </p>
+          {isOffline && (
+            <p className="network-status">
+              <Icons.Signal size={14} color="var(--fee-high)" />
+              <span>Offline</span>
+            </p>
+          )}
           <button 
             onClick={loadData} 
             className="retry-btn"
@@ -144,8 +231,26 @@ function App() {
   return (
     <div className="popup-container">
       <div className="popup-header">
-        <h1>⚡ BTC Fee Tracker</h1>
-        <button className="settings-btn" onClick={openOptions} title="Open Settings">⚙️</button>
+        <h1><Icons.CurrencyBtc size={16} color="var(--text-tertiary)" weight="regular" /> BTC Fee Tracker</h1>
+        <div className="header-actions">
+          <button 
+            className={`alert-btn ${settings?.alertThreshold ? 'alert-active' : ''}`} 
+            onClick={openAlertSettings} 
+            title={settings?.alertThreshold 
+              ? `Alert set for ≤${settings.alertThreshold} sat/vB` 
+              : "Set fee alert threshold"
+            }
+          >
+            <Icons.Bell 
+              size={16} 
+              color={settings?.alertThreshold ? "var(--primary)" : "var(--text-secondary)"} 
+              weight={settings?.alertThreshold ? "fill" : "regular"}
+            />
+          </button>
+          <button className="settings-btn" onClick={openOptions} title="Settings">
+            <Icons.Settings size={16} color="var(--text-secondary)" />
+          </button>
+        </div>
       </div>
 
       <div className="fee-cards">
@@ -157,31 +262,49 @@ function App() {
           return (
             <div 
               key={priority.key}
-              className={`fee-card ${level} ${isSelected ? 'selected' : ''}`}
+              className={`fee-card ${level}`}
               title={`${priority.name}: ${Math.round(feeValue)} sat/vB${isSelected ? ' (currently displayed on badge)' : ''}`}
             >
-              <div className="fee-indicator">
-                {level === 'low' && '🟢'}
-                {level === 'medium' && '🟡'}
-                {level === 'high' && '🔴'}
-              </div>
-              <div className="fee-value">{Math.round(feeValue)}</div>
+              <div className="fee-value">{feeValue % 1 === 0 ? Math.round(feeValue) : feeValue.toFixed(2).replace(/\.?0+$/, '')}</div>
               <div className="fee-unit">sat/vB</div>
               <div className="fee-label">{priority.description}</div>
-              {isSelected && <div className="selected-indicator">↑</div>}
+              {isSelected && (
+                <div className="selected-indicator"></div>
+              )}
             </div>
           );
         })}
       </div>
 
       <div className="status-section">
-        <div className="status-message">
-          💡 {getFeeStatusMessage()}
-        </div>
         {lastUpdate && (
           <div className="last-update">
-            🕒 Updated {formatTimeAgo(lastUpdate)}
+            <Icons.Clock size={10} color="var(--text-tertiary)" weight="regular" />
+            <span>Updated {formatTimeAgo(lastUpdate)}</span>
+            {(() => {
+              const diffMs = currentTime.getTime() - lastUpdate.getTime();
+              const diffMins = Math.floor(diffMs / (1000 * 60));
+              return diffMins >= 1 && !isRefreshing && !isOffline ? (
+                <button 
+                  className="refresh-now-btn" 
+                  onClick={() => handleManualRefresh()}
+                  disabled={isRefreshing}
+                >
+                  [refresh now]
+                </button>
+              ) : null;
+            })()}
           </div>
+        )}
+        {blockHeight && (
+          <button 
+            className="block-height" 
+            onClick={openMempool}
+            title="Open mempool.space"
+          >
+            <span className="block-label">Block</span>
+            <span className="block-number">{blockHeight.toLocaleString()}</span>
+          </button>
         )}
       </div>
     </div>

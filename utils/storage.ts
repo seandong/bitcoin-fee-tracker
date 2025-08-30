@@ -14,6 +14,8 @@ export async function getUserSettings(): Promise<StorageData> {
       const defaultSettings: StorageData = {
         selectedPriority: DEFAULT_SETTINGS.SELECTED_PRIORITY,
         notificationsEnabled: DEFAULT_SETTINGS.NOTIFICATIONS_ENABLED,
+        alertThreshold: undefined,
+        theme: DEFAULT_SETTINGS.THEME,
         lastUpdate: 0,
       };
       
@@ -29,6 +31,8 @@ export async function getUserSettings(): Promise<StorageData> {
     return {
       selectedPriority: DEFAULT_SETTINGS.SELECTED_PRIORITY,
       notificationsEnabled: DEFAULT_SETTINGS.NOTIFICATIONS_ENABLED,
+      alertThreshold: undefined,
+      theme: DEFAULT_SETTINGS.THEME,
       lastUpdate: 0,
     };
   }
@@ -59,7 +63,19 @@ export async function updateSetting<K extends keyof StorageData>(
   try {
     const settings = await getUserSettings();
     settings[key] = value;
-    return await saveUserSettings(settings);
+    const success = await saveUserSettings(settings);
+    
+    // If priority changed, trigger badge update via runtime message
+    if (success && key === 'selectedPriority') {
+      try {
+        await browser.runtime.sendMessage({ type: 'UPDATE_BADGE' });
+      } catch (error) {
+        // Background script might not be listening, that's ok
+        console.log('Could not send badge update message:', error);
+      }
+    }
+    
+    return success;
   } catch (error) {
     console.error(`Failed to update setting ${key}:`, error);
     return false;

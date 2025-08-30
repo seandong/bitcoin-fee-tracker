@@ -5,14 +5,19 @@ export interface FeeData {
   hourFee: number;       // Low priority (1-hour confirmation)
 }
 
+// Theme mode type
+export type ThemeMode = 'light' | 'dark' | 'system';
+
 // User storage data structure
 export interface StorageData {
   selectedPriority: 'fastestFee' | 'halfHourFee' | 'hourFee';
   alertThreshold?: number;
   notificationsEnabled: boolean;
+  theme: ThemeMode;
   lastUpdate: number;
   cachedData?: FeeData;
   lastAlertState?: boolean;  // For anti-spam notification logic
+  lastNotificationTime?: number;  // Timestamp of last notification
 }
 
 // Priority type for easier usage
@@ -24,6 +29,13 @@ export type FeeLevel = 'low' | 'medium' | 'high';
 // Priority display names
 export interface PriorityInfo {
   key: Priority;
+  name: string;
+  description: string;
+}
+
+// Theme display names
+export interface ThemeInfo {
+  key: ThemeMode;
   name: string;
   description: string;
 }
@@ -40,5 +52,11 @@ export interface ApiResponse<T> {
 export interface BadgeConfig {
   text: string;
   color: string;
+  backgroundColor?: string;
   level: FeeLevel;
+}
+
+// Block data
+export interface BlockData {
+  height: number;
 }

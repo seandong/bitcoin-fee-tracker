@@ -1,4 +1,4 @@
-import type { Priority, PriorityInfo } from './types';
+import type { Priority, PriorityInfo, ThemeMode, ThemeInfo } from './types';
 
 // API Configuration
 export const API_CONFIG = {
@@ -14,56 +14,97 @@ export const FEE_THRESHOLDS = {
   HIGH: 50,
 } as const;
 
-// Badge colors (matching Chrome extension badge API)
+// Badge colors
 export const BADGE_COLORS = {
-  LOW: '#4CAF50',    // Green
-  MEDIUM: '#FF9800', // Orange/Yellow  
-  HIGH: '#F44336',   // Red
-  ERROR: '#757575',  // Gray
+  // Text colors (same as priority labels)
+  LOW: '#10B981',    // Emerald-500 - Green
+  MEDIUM: '#F59E0B', // Amber-500 - Orange/Yellow  
+  HIGH: '#EF4444',   // Red-500 - Red
+  ERROR: '#6B7280',  // Gray-500 - Gray
+  
+  // Background colors (matching priority label backgrounds)
+  LOW_BG: '#10B981',    // Emerald-500 - Green (same as label)
+  MEDIUM_BG: '#F59E0B', // Amber-500 - Orange/Yellow (same as label)
+  HIGH_BG: '#EF4444',   // Red-500 - Red (same as label)
+  ERROR_BG: '#6B7280',  // Gray-500 - Gray
 } as const;
 
-// Design system colors
+// Phosphor-inspired design system colors
 export const THEME_COLORS = {
-  // Bitcoin orange
-  PRIMARY: '#F7931A',
-  PRIMARY_LIGHT: '#FFB84D',
-  PRIMARY_DARK: '#E8841A',
+  // Primary palette - sophisticated orange/amber
+  PRIMARY: '#F59E0B',     // Amber-500 - more refined than bitcoin orange
+  PRIMARY_LIGHT: '#FCD34D', // Amber-300 - lighter variant
+  PRIMARY_DARK: '#D97706',  // Amber-600 - darker variant
+  PRIMARY_SUBTLE: '#FEF3C7', // Amber-100 - very light background
   
-  // Fee status colors
-  FEE_LOW: '#4CAF50',
-  FEE_MEDIUM: '#FF9800',
-  FEE_HIGH: '#F44336',
+  // Fee status colors - balanced and accessible
+  FEE_LOW: '#10B981',     // Emerald-500 - fresh green
+  FEE_MEDIUM: '#F59E0B',  // Amber-500 - warm amber
+  FEE_HIGH: '#EF4444',    // Red-500 - clear red
   
-  // Neutral colors (will be handled by CSS variables for light/dark theme)
-  SUCCESS: '#4CAF50',
-  WARNING: '#FF9800',
-  ERROR: '#F44336',
-  INFO: '#2196F3',
+  // Neutral palette - clean grays inspired by Phosphor's minimalism
+  GRAY_50: '#F9FAFB',     // Lightest background
+  GRAY_100: '#F3F4F6',    // Light background
+  GRAY_200: '#E5E7EB',    // Light border
+  GRAY_300: '#D1D5DB',    // Medium border
+  GRAY_400: '#9CA3AF',    // Light text
+  GRAY_500: '#6B7280',    // Medium text
+  GRAY_600: '#4B5563',    // Dark text
+  GRAY_700: '#374151',    // Darker text
+  GRAY_800: '#1F2937',    // Darkest text
+  GRAY_900: '#111827',    // Almost black
+  
+  // Semantic colors
+  SUCCESS: '#10B981',
+  WARNING: '#F59E0B',
+  ERROR: '#EF4444',
+  INFO: '#3B82F6',
 } as const;
 
 // Priority information
 export const PRIORITIES: PriorityInfo[] = [
   {
     key: 'hourFee',
-    name: 'Low Priority',
-    description: '1 hour confirmation',
+    name: 'Low',
+    description: '~60 minutes',
   },
   {
     key: 'halfHourFee', 
-    name: 'Medium Priority',
-    description: '30 minute confirmation',
+    name: 'Medium',
+    description: '~30 minutes',
   },
   {
     key: 'fastestFee',
-    name: 'High Priority', 
-    description: 'Fastest confirmation',
+    name: 'High', 
+    description: '~10 minutes',
+  },
+] as const;
+
+// Theme information
+export const THEMES: ThemeInfo[] = [
+  {
+    key: 'light',
+    name: 'Light',
+    description: '',
+  },
+  {
+    key: 'dark',
+    name: 'Dark',
+    description: '',
+  },
+  {
+    key: 'system',
+    name: 'Auto',
+    description: '',
   },
 ] as const;
 
 // Default settings
 export const DEFAULT_SETTINGS = {
   SELECTED_PRIORITY: 'halfHourFee' as Priority,
-  NOTIFICATIONS_ENABLED: false,
+  NOTIFICATIONS_ENABLED: true,
+  ALERT_THRESHOLD: undefined as number | undefined,
+  THEME: 'system' as ThemeMode,
   CACHE_DURATION: 5 * 60 * 1000, // 5 minutes
   BADGE_MAX_VALUE: 99,
 } as const;
@@ -81,8 +122,9 @@ export const ALARM_NAME = 'btc_fee_update_alarm' as const;
 // Notification configuration
 export const NOTIFICATION_CONFIG = {
   ID: 'btc_fee_alert',
-  TITLE: 'BTC Fee Alert',
-  MESSAGE_TEMPLATE: 'BTC手续费已降至 {value} sat/vB，适合交易！',
-  ICON: 'icon/48.png',
+  TITLE: 'BTC Fee Alert 🚀',
+  MESSAGE_TEMPLATE: 'Bitcoin fees dropped to {value} sat/vB - great time to transact!',
+  ICON: '/icon/48.png',
   TYPE: 'basic' as const,
+  COOLDOWN: 15 * 60 * 1000, // 15 minutes between notifications
 } as const;

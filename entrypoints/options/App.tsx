@@ -1,27 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { getUserSettings, updateSetting } from '@/utils/storage';
-import { getNotificationPermission, isNotificationSupported } from '@/utils/notifications';
-import { PRIORITIES } from '@/utils/constants';
-import type { StorageData, Priority } from '@/utils/types';
+import { PRIORITIES, THEMES } from '@/utils/constants';
+// import { Icons } from '@/utils/icons';
+import type { StorageData, Priority, ThemeMode } from '@/utils/types';
 
 function App() {
   const [settings, setSettings] = useState<StorageData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [notificationPermission, setNotificationPermission] = useState<'granted' | 'denied' | 'unknown'>('unknown');
 
   useEffect(() => {
     loadSettings();
-    checkNotificationPermission();
   }, []);
 
-  const checkNotificationPermission = async () => {
-    if (isNotificationSupported()) {
-      const permission = await getNotificationPermission();
-      setNotificationPermission(permission);
+  useEffect(() => {
+    if (settings?.theme) {
+      applyTheme(settings.theme);
     }
-  };
+  }, [settings?.theme]);
 
   const loadSettings = async () => {
     try {
@@ -48,32 +45,30 @@ function App() {
     setSaving(false);
   };
 
-  const handleNotificationToggle = async () => {
+  const handleThemeChange = async (theme: ThemeMode) => {
     if (!settings) return;
     
     setSaving(true);
-    const newValue = !settings.notificationsEnabled;
-    const success = await updateSetting('notificationsEnabled', newValue);
+    const success = await updateSetting('theme', theme);
     
     if (success) {
-      setSettings({ ...settings, notificationsEnabled: newValue });
+      setSettings({ ...settings, theme });
+      applyTheme(theme);
       showSavedMessage();
     }
     setSaving(false);
   };
 
-  const handleThresholdChange = async (threshold: number | undefined) => {
-    if (!settings) return;
+  const applyTheme = (theme: ThemeMode) => {
+    const html = document.documentElement;
     
-    setSaving(true);
-    const success = await updateSetting('alertThreshold', threshold);
-    
-    if (success) {
-      setSettings({ ...settings, alertThreshold: threshold });
-      showSavedMessage();
+    if (theme === 'system') {
+      html.removeAttribute('data-theme');
+    } else {
+      html.setAttribute('data-theme', theme);
     }
-    setSaving(false);
   };
+
 
   const showSavedMessage = () => {
     setSaved(true);
@@ -107,16 +102,15 @@ function App() {
   return (
     <div className="options-container">
       <header className="options-header">
-        <h1>⚡ BTC Fee Tracker Settings</h1>
-        {saved && <div className="save-indicator">✅ Settings saved</div>}
+        <h1>Settings</h1>
+        {saved && <div className="save-indicator">Saved</div>}
       </header>
 
       <div className="options-content">
         {/* Badge Priority Section */}
         <section className="setting-section">
-          <h2>Display Settings</h2>
+          <h2>Badge Display</h2>
           <div className="setting-group">
-            <label className="setting-label">Badge Priority</label>
             <p className="setting-description">
               Choose which fee level to display on the extension icon
             </p>
@@ -132,9 +126,7 @@ function App() {
                     disabled={saving}
                   />
                   <span className="radio-label">
-                    <strong>{priority.name}</strong>
-                    <br />
-                    <small>{priority.description}</small>
+                    <strong>{priority.name}</strong> {priority.description}
                   </span>
                 </label>
               ))}
@@ -142,72 +134,29 @@ function App() {
           </div>
         </section>
 
-        {/* Notifications Section */}
+        {/* Theme Section */}
         <section className="setting-section">
-          <h2>Notifications</h2>
+          <h2>Theme</h2>
           <div className="setting-group">
-            <label className="setting-label">
-              <input
-                type="checkbox"
-                checked={settings.notificationsEnabled}
-                onChange={handleNotificationToggle}
-                disabled={saving || notificationPermission === 'denied'}
-              />
-              Enable fee notifications
-            </label>
             <p className="setting-description">
-              Get notified when Bitcoin fees drop below your threshold
+              Choose interface appearance
             </p>
-            {notificationPermission === 'denied' && (
-              <div className="permission-warning">
-                ⚠️ Notification permission is denied. Please enable notifications in your browser settings to use this feature.
-              </div>
-            )}
-            {notificationPermission === 'granted' && settings.notificationsEnabled && (
-              <div className="permission-success">
-                ✅ Notifications are enabled and working
-              </div>
-            )}
-          </div>
-
-          {settings.notificationsEnabled && (
-            <div className="setting-group">
-              <label className="setting-label">Alert Threshold</label>
-              <p className="setting-description">
-                Send notification when fees drop below this value (sat/vB)
-              </p>
-              <div className="threshold-input">
-                <input
-                  type="number"
-                  min="1"
-                  max="1000"
-                  placeholder="Enter threshold (e.g., 15)"
-                  value={settings.alertThreshold || ''}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    const threshold = value ? parseInt(value, 10) : undefined;
-                    if (threshold && threshold > 0 && threshold <= 1000) {
-                      handleThresholdChange(threshold);
-                    } else if (!value) {
-                      handleThresholdChange(undefined);
-                    }
-                  }}
-                  disabled={saving}
-                />
-                <span className="threshold-unit">sat/vB</span>
-              </div>
-            </div>
-          )}
-        </section>
-
-        {/* About Section */}
-        <section className="setting-section">
-          <h2>About</h2>
-          <div className="setting-group">
-            <div className="about-info">
-              <p><strong>Version:</strong> 1.0.0</p>
-              <p><strong>Data Source:</strong> mempool.space</p>
-              <p><strong>Update Frequency:</strong> Every 30 seconds</p>
+            <div className="radio-group">
+              {THEMES.map((theme) => (
+                <label key={theme.key} className="radio-option">
+                  <input
+                    type="radio"
+                    name="theme"
+                    value={theme.key}
+                    checked={settings.theme === theme.key}
+                    onChange={() => handleThemeChange(theme.key)}
+                    disabled={saving}
+                  />
+                  <span className="radio-label">
+                    <strong>{theme.name}</strong>
+                  </span>
+                </label>
+              ))}
             </div>
           </div>
         </section>

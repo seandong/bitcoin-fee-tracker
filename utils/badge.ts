@@ -15,18 +15,18 @@ export function getFeeLevel(feeValue: number): FeeLevel {
 }
 
 /**
- * Get badge color for fee level
+ * Get badge colors for fee level
  */
-export function getBadgeColor(level: FeeLevel): string {
+export function getBadgeColors(level: FeeLevel): { text: string; background: string } {
   switch (level) {
     case 'low':
-      return BADGE_COLORS.LOW;
+      return { text: BADGE_COLORS.LOW, background: BADGE_COLORS.LOW_BG };
     case 'medium':
-      return BADGE_COLORS.MEDIUM;
+      return { text: BADGE_COLORS.MEDIUM, background: BADGE_COLORS.MEDIUM_BG };
     case 'high':
-      return BADGE_COLORS.HIGH;
+      return { text: BADGE_COLORS.HIGH, background: BADGE_COLORS.HIGH_BG };
     default:
-      return BADGE_COLORS.ERROR;
+      return { text: BADGE_COLORS.ERROR, background: BADGE_COLORS.ERROR_BG };
   }
 }
 
@@ -42,17 +42,35 @@ export function formatBadgeText(feeValue: number): string {
 }
 
 /**
+ * Get level based on priority selection
+ */
+export function getLevelForPriority(priority: Priority): FeeLevel {
+  switch (priority) {
+    case 'hourFee':      // Slow = Low priority = Green
+      return 'low';
+    case 'halfHourFee':  // Average = Medium priority = Amber
+      return 'medium';
+    case 'fastestFee':   // Fast = High priority = Red
+      return 'high';
+    default:
+      return 'medium';
+  }
+}
+
+/**
  * Create badge configuration for fee data
  */
 export function createBadgeConfig(feeData: FeeData, priority: Priority): BadgeConfig {
   const feeValue = feeData[priority];
-  const level = getFeeLevel(feeValue);
   const text = formatBadgeText(feeValue);
-  const color = getBadgeColor(level);
+  // Use priority-based level for color, not fee value threshold
+  const level = getLevelForPriority(priority);
+  const colors = getBadgeColors(level);
   
   return {
     text,
-    color,
+    color: colors.text,
+    backgroundColor: colors.background,
     level,
   };
 }
@@ -67,9 +85,14 @@ export async function updateBadge(badgeConfig: BadgeConfig): Promise<boolean> {
       text: badgeConfig.text 
     });
     
-    // Set badge background color
+    // Set badge background color to match priority label style
     await browser.action.setBadgeBackgroundColor({ 
-      color: badgeConfig.color 
+      color: badgeConfig.backgroundColor || BADGE_COLORS.ERROR_BG
+    });
+    
+    // Set text color to white for better contrast on colored backgrounds
+    await browser.action.setBadgeTextColor({
+      color: '#FFFFFF'  // White text for all backgrounds
     });
     
     return true;
@@ -89,7 +112,11 @@ export async function setBadgeError(): Promise<boolean> {
     });
     
     await browser.action.setBadgeBackgroundColor({ 
-      color: BADGE_COLORS.ERROR 
+      color: BADGE_COLORS.ERROR_BG
+    });
+    
+    await browser.action.setBadgeTextColor({
+      color: '#FFFFFF'  // White text for consistency
     });
     
     return true;

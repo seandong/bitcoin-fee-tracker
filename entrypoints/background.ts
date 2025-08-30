@@ -15,6 +15,12 @@ export default defineBackground(() => {
   
   // Handle extension installation/update
   browser.runtime.onInstalled.addListener(handleInstalled);
+  
+  // Handle storage changes to update badge when settings change
+  browser.storage.onChanged.addListener(handleStorageChange);
+  
+  // Handle runtime messages for immediate badge updates
+  browser.runtime.onMessage.addListener(handleMessage);
 });
 
 /**
@@ -153,5 +159,49 @@ async function checkAndSendNotification(feeData: any) {
     }
   } catch (error) {
     console.error('Failed to check notification conditions:', error);
+  }
+}
+
+/**
+ * Handle storage changes to update badge when settings change
+ */
+async function handleStorageChange(changes: any, area: string) {
+  if (area !== 'local') return;
+  
+  // Check if settings were changed
+  if (changes.btc_fee_tracker_settings) {
+    const newSettings = changes.btc_fee_tracker_settings.newValue;
+    const oldSettings = changes.btc_fee_tracker_settings.oldValue;
+    
+    // Check if selectedPriority changed
+    if (oldSettings && newSettings && 
+        oldSettings.selectedPriority !== newSettings.selectedPriority) {
+      console.log('Priority changed, updating badge...');
+      
+      // Get cached fee data and update badge with new priority
+      if (newSettings.cachedData) {
+        await updateBadgeDisplay(newSettings.cachedData);
+      }
+    }
+  }
+}
+
+/**
+ * Handle runtime messages
+ */
+async function handleMessage(message: any) {
+  if (message.type === 'UPDATE_BADGE') {
+    console.log('Received badge update request');
+    
+    // Get cached fee data
+    const settings = await getUserSettings();
+    if (settings.cachedData) {
+      await updateBadgeDisplay(settings.cachedData);
+    } else {
+      // If no cached data, fetch new data
+      await updateFeeData();
+    }
+    
+    return true; // Indicate async response
   }
 }

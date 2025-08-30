@@ -7,7 +7,7 @@ export default defineConfig({
     name: 'BTC Fee Tracker',
     description: 'Bitcoin transaction fee tracker Chrome extension',
     version: '1.0.0',
-    permissions: ['storage', 'notifications', 'alarms'],
+    permissions: ['storage', 'notifications', 'alarms', 'tabs'],
     host_permissions: ['https://mempool.space/*'],
     action: {
       default_title: 'BTC Fee Tracker'
