@@ -14,19 +14,19 @@ export const FEE_THRESHOLDS = {
   HIGH: 50,
 } as const;
 
-// Badge colors
+// Badge colors (semantic UX-based)
 export const BADGE_COLORS = {
-  // Text colors (same as priority labels)
-  LOW: '#10B981',    // Emerald-500 - Green
-  MEDIUM: '#F59E0B', // Amber-500 - Orange/Yellow  
-  HIGH: '#EF4444',   // Red-500 - Red
-  ERROR: '#6B7280',  // Gray-500 - Gray
+  // Text colors (semantic: low=slow/poor, medium=balanced, high=fast/good)
+  LOW: '#EF4444',    // Red-500 - Slow/Poor UX
+  MEDIUM: '#F59E0B', // Amber-500 - Balanced UX
+  HIGH: '#10B981',   // Green-500 - Fast/Good UX  
+  ERROR: '#6B7280',  // Gray-500 - Error state
   
   // Background colors (matching priority label backgrounds)
-  LOW_BG: '#10B981',    // Emerald-500 - Green (same as label)
-  MEDIUM_BG: '#F59E0B', // Amber-500 - Orange/Yellow (same as label)
-  HIGH_BG: '#EF4444',   // Red-500 - Red (same as label)
-  ERROR_BG: '#6B7280',  // Gray-500 - Gray
+  LOW_BG: '#EF4444',    // Red-500 - Slow/Poor UX (same as label)
+  MEDIUM_BG: '#F59E0B', // Amber-500 - Balanced UX (same as label)
+  HIGH_BG: '#10B981',   // Green-500 - Fast/Good UX (same as label)
+  ERROR_BG: '#6B7280',  // Gray-500 - Error state
 } as const;
 
 // Phosphor-inspired design system colors

@@ -49,6 +49,7 @@
     --border-color: var(--gray-600);
     --border-strong: var(--gray-500);
   }
+  
 }
 
 /* Explicit theme overrides */
@@ -62,6 +63,7 @@
   --border-color: var(--gray-600);
   --border-strong: var(--gray-500);
 }
+
 
 [data-theme="light"] {
   --bg-primary: var(--gray-50);
@@ -467,18 +469,18 @@ body {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-/* Colored label tags for different priorities */
+/* Colored label tags for different priorities - semantic colors */
 .fee-label {
-  background: #10B981; /* Green for Low */
+  background: #EF4444; /* Red for Low priority (cheap but slow, poor UX) */
   color: #FFFFFF;
 }
 
 /* Override for Medium priority */
 .fee-card:nth-child(2) .fee-label {
-  background: #F59E0B; /* Amber for Medium */
+  background: #F59E0B; /* Amber for Medium priority (balanced speed/cost) */
 }
 
 /* Override for High priority */
 .fee-card:nth-child(3) .fee-label {
-  background: #EF4444; /* Red for High */
+  background: #10B981; /* Green for High priority (fast confirmation, good UX) */
 }

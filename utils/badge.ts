@@ -42,15 +42,15 @@ export function formatBadgeText(feeValue: number): string {
 }
 
 /**
- * Get level based on priority selection
+ * Get level based on priority selection (semantic UX-based)
  */
 export function getLevelForPriority(priority: Priority): FeeLevel {
   switch (priority) {
-    case 'hourFee':      // Slow = Low priority = Green
+    case 'hourFee':      // Slow = Poor UX = Red
       return 'low';
-    case 'halfHourFee':  // Average = Medium priority = Amber
+    case 'halfHourFee':  // Average = Balanced UX = Amber
       return 'medium';
-    case 'fastestFee':   // Fast = High priority = Red
+    case 'fastestFee':   // Fast = Good UX = Green
       return 'high';
     default:
       return 'medium';
