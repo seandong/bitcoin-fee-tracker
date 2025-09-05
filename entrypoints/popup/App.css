@@ -132,15 +132,15 @@ body {
 
 .popup-header h1 {
   font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-secondary);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
   margin: 0;
   display: flex;
   align-items: center;
   gap: 6px;
   letter-spacing: -0.01em;
-  opacity: 0.9;
+  opacity: 1;
 }
 
 
@@ -151,41 +151,47 @@ body {
 }
 
 .settings-btn, .alert-btn {
-  background: transparent;
+  background: var(--bg-secondary);
   border: 1px solid transparent;
   cursor: pointer;
-  padding: 6px;
-  border-radius: 8px;
-  color: var(--text-tertiary);
-  transition: all 0.15s ease;
+  padding: 8px;
+  border-radius: 50%;
+  color: var(--text-secondary);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   position: relative;
-  opacity: 0.8;
+  opacity: 0.9;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .settings-btn:hover, .alert-btn:hover {
-  background: var(--bg-secondary);
-  border-color: transparent;
-  color: var(--text-secondary);
+  background: var(--bg-primary);
+  border-color: var(--border-color);
+  color: var(--text-primary);
   opacity: 1;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 /* Alert button active state */
 .alert-btn.alert-active {
-  background: var(--bg-secondary);
-  border-color: transparent;
-  color: var(--text-secondary);
+  background: var(--primary-subtle);
+  border-color: var(--primary-light);
+  color: var(--primary-dark);
   opacity: 1;
+  box-shadow: 0 1px 3px rgba(245, 158, 11, 0.1);
 }
 
 .alert-btn.alert-active:hover {
-  background: var(--bg-primary);
-  border-color: transparent;
-  color: var(--text-primary);
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.15);
 }
 
 
@@ -194,8 +200,8 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
-  padding: 16px 20px;
+  gap: 16px;
+  padding: 18px 20px;
   flex: 1;
   background: var(--bg-tertiary);
 }
@@ -223,7 +229,7 @@ body {
 .fee-value {
   font-family: 'Inter', sans-serif;
   font-weight: 700;
-  font-size: 24px;
+  font-size: 28px;
   color: var(--text-primary);
   line-height: 1;
   letter-spacing: -0.02em;
@@ -285,14 +291,14 @@ body {
 
 .last-update {
   font-family: 'Inter', sans-serif;
-  font-size: 11px;
-  color: var(--text-tertiary);
+  font-size: 12px;
+  color: var(--text-secondary);
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-weight: 400;
+  gap: 5px;
+  font-weight: 500;
   letter-spacing: -0.01em;
-  opacity: 0.8;
+  opacity: 0.9;
 }
 
 .refresh-now-btn {
@@ -326,34 +332,38 @@ body {
 /* Block height display */
 .block-height {
   background: var(--bg-tertiary);
-  border: none;
-  padding: 4px 8px;
-  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  padding: 5px 10px;
+  border-radius: 8px;
   font-family: 'Inter', sans-serif;
-  font-size: 11px;
-  color: var(--text-tertiary);
+  font-size: 12px;
+  color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   letter-spacing: -0.01em;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .block-height:hover {
   background: var(--bg-secondary);
-  color: var(--text-secondary);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 .block-label {
-  font-weight: 400;
-  opacity: 0.7;
+  font-weight: 500;
+  opacity: 0.8;
 }
 
 .block-number {
-  font-weight: 500;
+  font-weight: 600;
   font-feature-settings: 'tnum';
-  opacity: 0.9;
+  opacity: 1;
 }
 
 /* Error states with icons */

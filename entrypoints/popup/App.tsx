@@ -186,7 +186,7 @@ function App() {
     return (
       <div className="popup-container">
         <div className="popup-header">
-          <h1><Icons.CurrencyBtc size={16} color="var(--text-tertiary)" weight="regular" /> BTC Fee Tracker</h1>
+          <h1><img src="/icon/32.png" alt="BTC Fee Tracker" style={{ width: 18, height: 18 }} /> BTC Fee Tracker</h1>
         </div>
         <div className="loading">
           <Icons.Loader2 size={32} color="var(--primary)" className="loading-spinner" />
@@ -200,7 +200,7 @@ function App() {
     return (
       <div className="popup-container">
         <div className="popup-header">
-          <h1><Icons.CurrencyBtc size={16} color="var(--text-tertiary)" weight="regular" /> BTC Fee Tracker</h1>
+          <h1><img src="/icon/32.png" alt="BTC Fee Tracker" style={{ width: 18, height: 18 }} /> BTC Fee Tracker</h1>
           <button className="settings-btn" onClick={openOptions} title="Open Settings">
             <Icons.Settings size={18} color="var(--text-secondary)" />
           </button>
@@ -231,7 +231,7 @@ function App() {
   return (
     <div className="popup-container">
       <div className="popup-header">
-        <h1><Icons.CurrencyBtc size={16} color="var(--text-tertiary)" weight="regular" /> BTC Fee Tracker</h1>
+        <h1><img src="/icon/32.png" alt="BTC Fee Tracker" style={{ width: 18, height: 18 }} /> BTC Fee Tracker</h1>
         <div className="header-actions">
           <button 
             className={`alert-btn ${settings?.alertThreshold ? 'alert-active' : ''}`} 
@@ -243,12 +243,12 @@ function App() {
           >
             <Icons.Bell 
               size={16} 
-              color={settings?.alertThreshold ? "var(--primary)" : "var(--text-secondary)"} 
-              weight={settings?.alertThreshold ? "fill" : "regular"}
+              color="currentColor"
+              weight="regular"
             />
           </button>
           <button className="settings-btn" onClick={openOptions} title="Settings">
-            <Icons.Settings size={16} color="var(--text-secondary)" />
+            <Icons.Settings size={16} color="currentColor" weight="regular" />
           </button>
         </div>
       </div>
@@ -279,7 +279,7 @@ function App() {
       <div className="status-section">
         {lastUpdate && (
           <div className="last-update">
-            <Icons.Clock size={10} color="var(--text-tertiary)" weight="regular" />
+            <Icons.Clock size={12} color="currentColor" weight="regular" />
             <span>Updated {formatTimeAgo(lastUpdate)}</span>
             {(() => {
               const diffMs = currentTime.getTime() - lastUpdate.getTime();
