@@ -4,8 +4,8 @@ import { PRIORITIES, THEME_COLORS } from '@/utils/constants';
 import { getFeeLevel } from '@/utils/badge';
 import { isOnline, addNetworkStatusListener } from '@/utils/network';
 import { Icons } from '@/utils/icons';
-import { fetchBlockHeight } from '@/utils/api';
-import type { FeeData, StorageData, Priority, ThemeMode } from '@/utils/types';
+import { fetchBlockHeight, fetchMempoolData, calculateNextBlockFeeRange } from '@/utils/api';
+import type { FeeData, StorageData, Priority, FeeRange } from '@/utils/types';
 import './App.css';
 
 function App() {
@@ -19,25 +19,14 @@ function App() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isInitialized, setIsInitialized] = useState(false);
   const [blockHeight, setBlockHeight] = useState<number | null>(null);
+  const [nextBlockFeeRange, setNextBlockFeeRange] = useState<FeeRange | null>(null);
 
-  const applyTheme = (theme: ThemeMode) => {
-    const html = document.documentElement;
-    
-    if (theme === 'system') {
-      html.removeAttribute('data-theme');
-    } else {
-      html.setAttribute('data-theme', theme);
-    }
-  };
 
   useEffect(() => {
     loadData();
     loadBlockHeight();
+    loadNextBlockFeeRange();
     
-    // Apply theme when settings are loaded
-    if (settings?.theme) {
-      applyTheme(settings.theme);
-    }
 
     // Set up network status monitoring
     const cleanupNetworkListener = addNetworkStatusListener(
@@ -46,17 +35,19 @@ function App() {
         // Auto-refresh data when coming back online
         loadData();
         loadBlockHeight();
+        loadNextBlockFeeRange();
       },
       () => setIsOffline(true)
     );
 
-    // Set up auto-refresh interval (every 30 seconds)
+    // Set up auto-refresh interval (every 10 seconds)
     const refreshInterval = setInterval(() => {
       if (!isOffline && !loading) {
         loadData();
         loadBlockHeight();
+        loadNextBlockFeeRange();
       }
-    }, 30000);
+    }, 10000);
 
     // Update current time every second for accurate "time ago" display
     const timeInterval = setInterval(() => {
@@ -85,11 +76,6 @@ function App() {
       ]);
 
       setSettings(userSettings);
-    
-    // Apply theme
-    if (userSettings.theme) {
-      applyTheme(userSettings.theme);
-    }
       
       if (cachedFeeData) {
         setFeeData(cachedFeeData);
@@ -129,10 +115,23 @@ function App() {
     }
   };
 
+  const loadNextBlockFeeRange = async () => {
+    try {
+      const response = await fetchMempoolData();
+      if (response.success && response.data) {
+        const feeRange = calculateNextBlockFeeRange(response.data);
+        setNextBlockFeeRange(feeRange);
+      }
+    } catch (error) {
+      console.error('Failed to load next block fee range:', error);
+    }
+  };
+
   const handleManualRefresh = () => {
     if (!isRefreshing && !isOffline) {
       loadData(true);
       loadBlockHeight();
+      loadNextBlockFeeRange();
     }
   };
 
@@ -154,7 +153,7 @@ function App() {
     const diffSecs = Math.floor(diffMs / 1000);
     const diffMins = Math.floor(diffSecs / 60);
     
-    if (diffSecs < 30) return 'Just now';
+    if (diffSecs < 30) return 'just now';
     if (diffSecs < 60) return `${diffSecs}s ago`;
     if (diffMins === 1) return '1m ago';
     if (diffMins < 60) return `${diffMins}m ago`;
@@ -162,6 +161,14 @@ function App() {
     const diffHours = Math.floor(diffMins / 60);
     if (diffHours === 1) return '1h ago';
     return `${diffHours}h ago`;
+  };
+
+  const formatFeeValue = (value: number): string => {
+    if (value >= 10) {
+      return Math.round(value).toString();
+    }
+    // For values < 10, show up to 2 decimal places but remove trailing zeros
+    return value.toFixed(2).replace(/\.?0+$/, '');
   };
 
   const getFeeStatusMessage = (): string => {
@@ -179,6 +186,24 @@ function App() {
         return 'Fees are high - consider waiting if possible';
       default:
         return '';
+    }
+  };
+
+  const getSelectedPriorityColor = (): string => {
+    if (!feeData || !settings) return 'var(--primary)';
+    
+    const selectedFee = feeData[settings.selectedPriority];
+    const level = getFeeLevel(selectedFee);
+    
+    switch (level) {
+      case 'low':
+        return 'var(--fee-low)';
+      case 'medium':
+        return 'var(--fee-medium)';
+      case 'high':
+        return 'var(--fee-high)';
+      default:
+        return 'var(--primary)';
     }
   };
 
@@ -229,7 +254,7 @@ function App() {
   }
 
   return (
-    <div className="popup-container">
+    <div className="popup-container" style={{'--dynamic-border-color': getSelectedPriorityColor()} as React.CSSProperties}>
       <div className="popup-header">
         <h1><img src="/icon/32.png" alt="BTC Fee Tracker" style={{ width: 18, height: 18 }} /> BTC Fee Tracker</h1>
         <div className="header-actions">
@@ -254,7 +279,7 @@ function App() {
       </div>
 
       <div className="fee-cards">
-        {PRIORITIES.map((priority) => {
+        {PRIORITIES.map((priority, index) => {
           const feeValue = feeData[priority.key];
           const level = getFeeLevel(feeValue);
           const isSelected = settings?.selectedPriority === priority.key;
@@ -265,7 +290,7 @@ function App() {
               className={`fee-card ${level}`}
               title={`${priority.name}: ${Math.round(feeValue)} sat/vB${isSelected ? ' (currently displayed on badge)' : ''}`}
             >
-              <div className="fee-value">{feeValue % 1 === 0 ? Math.round(feeValue) : feeValue.toFixed(2).replace(/\.?0+$/, '')}</div>
+              <div className="fee-value">{formatFeeValue(feeValue)}</div>
               <div className="fee-unit">sat/vB</div>
               <div className="fee-label">{priority.description}</div>
               {isSelected && (
@@ -277,35 +302,53 @@ function App() {
       </div>
 
       <div className="status-section">
-        {lastUpdate && (
-          <div className="last-update">
-            <Icons.Clock size={12} color="currentColor" weight="regular" />
-            <span>Updated {formatTimeAgo(lastUpdate)}</span>
-            {(() => {
-              const diffMs = currentTime.getTime() - lastUpdate.getTime();
-              const diffMins = Math.floor(diffMs / (1000 * 60));
-              return diffMins >= 1 && !isRefreshing && !isOffline ? (
-                <button 
-                  className="refresh-now-btn" 
-                  onClick={() => handleManualRefresh()}
-                  disabled={isRefreshing}
-                >
-                  [refresh now]
-                </button>
-              ) : null;
-            })()}
+        <div className="status-row">
+          {lastUpdate && (
+            <div className="last-update">
+              <Icons.Clock size={12} color="currentColor" weight="regular" />
+              <span>Updated {formatTimeAgo(lastUpdate)}</span>
+            </div>
+          )}
+          <div className="combined-info">
+            {nextBlockFeeRange && (
+              <button 
+                className="next-block-values"
+                onClick={() => browser.tabs.create({ url: 'https://mempool.space/mempool-block/0' })}
+                title="Next block fee range - estimated fees for upcoming Bitcoin block"
+              >
+                <span className="next-block-label">Next Block</span>
+                <span className="next-block-range">{formatFeeValue(nextBlockFeeRange.min)} ~ {formatFeeValue(nextBlockFeeRange.max)} sat/vB</span>
+              </button>
+            )}
+            {nextBlockFeeRange && (blockHeight || loading) && <div className="divider"></div>}
+            <button 
+              className="block-height" 
+              onClick={openMempool}
+              title="Open mempool.space"
+            >
+              <span className="block-label">Block</span>
+              <span className="block-number">
+                {loading ? (
+                  <Icons.Loader2 size={10} color="currentColor" className="loading-spinner" />
+                ) : blockHeight ? (
+                  blockHeight.toLocaleString()
+                ) : (
+                  'Loading...'
+                )}
+              </span>
+            </button>
           </div>
-        )}
-        {blockHeight && (
-          <button 
-            className="block-height" 
-            onClick={openMempool}
-            title="Open mempool.space"
-          >
-            <span className="block-label">Block</span>
-            <span className="block-number">{blockHeight.toLocaleString()}</span>
-          </button>
-        )}
+          {settings?.alertThreshold && (
+            <button 
+              className="alert-threshold" 
+              onClick={openAlertSettings}
+              title="Fee alert threshold - click to modify"
+            >
+              <span className="alert-threshold-label">Alert</span>
+              <span className="alert-threshold-value">≤{settings.alertThreshold} sat/vB</span>
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

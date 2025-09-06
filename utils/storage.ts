@@ -15,7 +15,6 @@ export async function getUserSettings(): Promise<StorageData> {
         selectedPriority: DEFAULT_SETTINGS.SELECTED_PRIORITY,
         notificationsEnabled: DEFAULT_SETTINGS.NOTIFICATIONS_ENABLED,
         alertThreshold: undefined,
-        theme: DEFAULT_SETTINGS.THEME,
         lastUpdate: 0,
       };
       
@@ -32,7 +31,6 @@ export async function getUserSettings(): Promise<StorageData> {
       selectedPriority: DEFAULT_SETTINGS.SELECTED_PRIORITY,
       notificationsEnabled: DEFAULT_SETTINGS.NOTIFICATIONS_ENABLED,
       alertThreshold: undefined,
-      theme: DEFAULT_SETTINGS.THEME,
       lastUpdate: 0,
     };
   }

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { getUserSettings, updateSetting } from '@/utils/storage';
-import { PRIORITIES, THEMES } from '@/utils/constants';
+import { PRIORITIES } from '@/utils/constants';
 // import { Icons } from '@/utils/icons';
-import type { StorageData, Priority, ThemeMode } from '@/utils/types';
+import type { StorageData, Priority } from '@/utils/types';
 
 function App() {
   const [settings, setSettings] = useState<StorageData | null>(null);
@@ -14,11 +14,6 @@ function App() {
     loadSettings();
   }, []);
 
-  useEffect(() => {
-    if (settings?.theme) {
-      applyTheme(settings.theme);
-    }
-  }, [settings?.theme]);
 
   const loadSettings = async () => {
     try {
@@ -45,29 +40,6 @@ function App() {
     setSaving(false);
   };
 
-  const handleThemeChange = async (theme: ThemeMode) => {
-    if (!settings) return;
-    
-    setSaving(true);
-    const success = await updateSetting('theme', theme);
-    
-    if (success) {
-      setSettings({ ...settings, theme });
-      applyTheme(theme);
-      showSavedMessage();
-    }
-    setSaving(false);
-  };
-
-  const applyTheme = (theme: ThemeMode) => {
-    const html = document.documentElement;
-    
-    if (theme === 'system') {
-      html.removeAttribute('data-theme');
-    } else {
-      html.setAttribute('data-theme', theme);
-    }
-  };
 
 
   const showSavedMessage = () => {
@@ -134,32 +106,6 @@ function App() {
           </div>
         </section>
 
-        {/* Theme Section */}
-        <section className="setting-section">
-          <h2>Theme</h2>
-          <div className="setting-group">
-            <p className="setting-description">
-              Choose interface appearance
-            </p>
-            <div className="radio-group">
-              {THEMES.map((theme) => (
-                <label key={theme.key} className="radio-option">
-                  <input
-                    type="radio"
-                    name="theme"
-                    value={theme.key}
-                    checked={settings.theme === theme.key}
-                    onChange={() => handleThemeChange(theme.key)}
-                    disabled={saving}
-                  />
-                  <span className="radio-label">
-                    <strong>{theme.name}</strong>
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-        </section>
 
         {saving && (
           <div className="saving-overlay">

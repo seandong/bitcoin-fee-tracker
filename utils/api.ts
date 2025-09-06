@@ -1,4 +1,4 @@
-import type { FeeData, ApiResponse, BlockData } from './types';
+import type { FeeData, ApiResponse, BlockData, MempoolData, FeeRange } from './types';
 import { API_CONFIG } from './constants';
 
 /**
@@ -125,4 +125,72 @@ export async function fetchBlockHeight(): Promise<ApiResponse<BlockData>> {
       timestamp,
     };
   }
+}
+
+/**
+ * Fetch mempool blocks data to get fee range for next block
+ */
+export async function fetchMempoolData(): Promise<ApiResponse<any>> {
+  const timestamp = Date.now();
+  
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
+    
+    const response = await fetch(
+      `${API_CONFIG.BASE_URL}/fees/mempool-blocks`,
+      {
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json',
+        },
+      }
+    );
+    
+    clearTimeout(timeoutId);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    // Validate response data
+    if (!Array.isArray(data) || data.length === 0) {
+      throw new Error('Invalid mempool blocks data structure');
+    }
+    
+    return {
+      success: true,
+      data: data[0], // First block is the next block (block 0)
+      timestamp,
+    };
+  } catch (error) {
+    console.error('Failed to fetch mempool blocks data:', error);
+    
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp,
+    };
+  }
+}
+
+/**
+ * Calculate fee range for next block (block 0) from mempool blocks data
+ * Uses mempool.space's mempool-blocks API which provides accurate fee ranges
+ */
+export function calculateNextBlockFeeRange(blockData: any): FeeRange {
+  if (!blockData || !Array.isArray(blockData.feeRange) || blockData.feeRange.length === 0) {
+    return { min: 0, max: 0 };
+  }
+  
+  const feeRange = blockData.feeRange;
+  const minFee = feeRange[0]; // First element is minimum fee
+  const maxFee = feeRange[feeRange.length - 1]; // Last element is maximum fee
+  
+  return { 
+    min: minFee, 
+    max: maxFee 
+  };
 }

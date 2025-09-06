@@ -127,7 +127,7 @@ function App() {
         </div>
         {saved && (
           <div className="save-indicator">
-            <Icons.CheckCircle size={16} color="var(--success-color)" weight="fill" />
+            <Icons.CheckCircle size={16} color="#10B981" weight="fill" />
             <span>Saved</span>
           </div>
         )}

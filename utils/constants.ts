@@ -1,11 +1,11 @@
-import type { Priority, PriorityInfo, ThemeMode, ThemeInfo } from './types';
+import type { Priority, PriorityInfo } from './types';
 
 // API Configuration
 export const API_CONFIG = {
   BASE_URL: 'https://mempool.space/api/v1',
   FEES_ENDPOINT: '/fees/recommended',
   TIMEOUT: 10000, // 10 seconds
-  UPDATE_INTERVAL: 30 * 1000, // 30 seconds
+  UPDATE_INTERVAL: 10 * 1000, // 10 seconds
 } as const;
 
 // Fee level thresholds (sat/vB)
@@ -66,45 +66,26 @@ export const PRIORITIES: PriorityInfo[] = [
   {
     key: 'hourFee',
     name: 'Low',
-    description: '~60 minutes',
+    description: '~60 min',
   },
   {
     key: 'halfHourFee', 
     name: 'Medium',
-    description: '~30 minutes',
+    description: '~30 min',
   },
   {
     key: 'fastestFee',
     name: 'High', 
-    description: '~10 minutes',
+    description: '~10 min',
   },
 ] as const;
 
-// Theme information
-export const THEMES: ThemeInfo[] = [
-  {
-    key: 'light',
-    name: 'Light',
-    description: '',
-  },
-  {
-    key: 'dark',
-    name: 'Dark',
-    description: '',
-  },
-  {
-    key: 'system',
-    name: 'Auto',
-    description: '',
-  },
-] as const;
 
 // Default settings
 export const DEFAULT_SETTINGS = {
   SELECTED_PRIORITY: 'halfHourFee' as Priority,
   NOTIFICATIONS_ENABLED: true,
   ALERT_THRESHOLD: undefined as number | undefined,
-  THEME: 'system' as ThemeMode,
   CACHE_DURATION: 5 * 60 * 1000, // 5 minutes
   BADGE_MAX_VALUE: 99,
 } as const;
