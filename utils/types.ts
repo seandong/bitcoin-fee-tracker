@@ -11,6 +11,7 @@ export interface StorageData {
   selectedPriority: 'fastestFee' | 'halfHourFee' | 'hourFee';
   alertThreshold?: number;
   notificationsEnabled: boolean;
+  badgeVisible: boolean;
   lastUpdate: number;
   cachedData?: FeeData;
   lastAlertState?: boolean;  // For anti-spam notification logic
@@ -58,6 +59,44 @@ export interface MempoolData {
   vsize: number;
   total_fee: number;
   fee_histogram: [number, number][]; // [fee_rate, vsize]
+}
+
+// Mempool blocks data structure from API
+export interface MempoolBlockData {
+  feeRange: number[];
+  blockSize: number;
+  blockVSize: number;
+  nTx: number;
+  totalFees: number;
+  medianFee: number;
+}
+
+// Chrome extension details for onInstalled event
+export interface ExtensionInstallDetails {
+  reason: 'install' | 'update' | 'chrome_update' | 'shared_module_update';
+  previousVersion?: string;
+  id?: string;
+}
+
+// Chrome storage change details
+export interface StorageChangeDetails {
+  [key: string]: {
+    newValue?: any;
+    oldValue?: any;
+  };
+}
+
+// Chrome alarms API alarm object
+export interface AlarmDetails {
+  name: string;
+  scheduledTime: number;
+  periodInMinutes?: number;
+}
+
+// Runtime message types
+export interface RuntimeMessage {
+  type: 'UPDATE_BADGE' | 'TEST_NOTIFICATION';
+  payload?: any;
 }
 
 // Fee range for next block

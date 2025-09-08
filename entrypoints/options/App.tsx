@@ -40,6 +40,19 @@ function App() {
     setSaving(false);
   };
 
+  const handleBadgeVisibilityChange = async (visible: boolean) => {
+    if (!settings) return;
+    
+    setSaving(true);
+    const success = await updateSetting('badgeVisible', visible);
+    
+    if (success) {
+      setSettings({ ...settings, badgeVisible: visible });
+      showSavedMessage();
+    }
+    setSaving(false);
+  };
+
 
 
   const showSavedMessage = () => {
@@ -79,30 +92,50 @@ function App() {
       </header>
 
       <div className="options-content">
-        {/* Badge Priority Section */}
+        {/* Badge Settings Section */}
         <section className="setting-section">
-          <h2>Badge Display</h2>
+          <h2>Extension Badge</h2>
           <div className="setting-group">
-            <p className="setting-description">
-              Choose which fee level to display on the extension icon
-            </p>
-            <div className="radio-group">
-              {PRIORITIES.map((priority) => (
-                <label key={priority.key} className="radio-option">
-                  <input
-                    type="radio"
-                    name="priority"
-                    value={priority.key}
-                    checked={settings.selectedPriority === priority.key}
-                    onChange={() => handlePriorityChange(priority.key)}
-                    disabled={saving}
-                  />
-                  <span className="radio-label">
-                    <strong>{priority.name}</strong> {priority.description}
-                  </span>
-                </label>
-              ))}
+            <div className="toggle-group">
+              <label className="toggle-option">
+                <input
+                  type="checkbox"
+                  checked={settings.badgeVisible}
+                  onChange={(e) => handleBadgeVisibilityChange(e.target.checked)}
+                  disabled={saving}
+                  className="toggle-input"
+                />
+                <span className="toggle-slider"></span>
+                <span className="toggle-label">
+                  <strong>Show Badge</strong> - Display fee information on browser toolbar icon
+                </span>
+              </label>
             </div>
+            
+            {settings.badgeVisible && (
+              <div className="setting-subgroup">
+                <p className="setting-description">
+                  Select which Bitcoin fee priority to display on your browser toolbar icon. The badge will show the current fee rate and update automatically.
+                </p>
+                <div className="radio-group">
+                  {PRIORITIES.map((priority) => (
+                    <label key={priority.key} className="radio-option">
+                      <input
+                        type="radio"
+                        name="priority"
+                        value={priority.key}
+                        checked={settings.selectedPriority === priority.key}
+                        onChange={() => handlePriorityChange(priority.key)}
+                        disabled={saving}
+                      />
+                      <span className="radio-label">
+                        <strong>{priority.name} Priority</strong> - {priority.description}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </section>
 

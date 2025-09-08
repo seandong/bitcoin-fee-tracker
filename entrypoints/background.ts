@@ -2,7 +2,8 @@ import { fetchFeeData } from '@/utils/api';
 import { getUserSettings, cacheFeeData } from '@/utils/storage';
 import { createBadgeConfig, updateBadge, setBadgeError } from '@/utils/badge';
 import { shouldSendNotification, sendFeeAlert } from '@/utils/notifications';
-import { ALARM_NAME, API_CONFIG } from '@/utils/constants';
+import { ALARM_NAME, TIME_CONSTANTS } from '@/utils/constants';
+import type { ExtensionInstallDetails, StorageChangeDetails, AlarmDetails, RuntimeMessage, FeeData } from '@/utils/types';
 
 export default defineBackground(() => {
   console.log('BTC Fee Tracker background script loaded');
@@ -46,7 +47,7 @@ async function initializeExtension() {
 /**
  * Handle extension installation or update
  */
-async function handleInstalled(details: any) {
+async function handleInstalled(details: ExtensionInstallDetails) {
   if (details.reason === 'install') {
     console.log('BTC Fee Tracker installed');
     
@@ -68,10 +69,10 @@ async function createUpdateAlarm() {
     // Clear existing alarm
     await browser.alarms.clear(ALARM_NAME);
     
-    // Create new alarm (every 30 seconds)
+    // Create new alarm using defined constants
     await browser.alarms.create(ALARM_NAME, {
-      delayInMinutes: 0.5, // 30 seconds
-      periodInMinutes: 0.5, // 30 seconds
+      delayInMinutes: TIME_CONSTANTS.UPDATE_INTERVAL_MINUTES,
+      periodInMinutes: TIME_CONSTANTS.UPDATE_INTERVAL_MINUTES,
     });
     
     console.log('Update alarm created successfully');
@@ -83,7 +84,7 @@ async function createUpdateAlarm() {
 /**
  * Handle alarm events
  */
-async function handleAlarm(alarm: any) {
+async function handleAlarm(alarm: AlarmDetails) {
   if (alarm.name === ALARM_NAME) {
     console.log('Alarm triggered: updating fee data');
     await updateFeeData();
@@ -127,11 +128,19 @@ async function updateFeeData() {
 /**
  * Update badge based on current settings
  */
-async function updateBadgeDisplay(feeData: any) {
+async function updateBadgeDisplay(feeData: FeeData) {
   try {
     const settings = await getUserSettings();
-    const badgeConfig = createBadgeConfig(feeData, settings.selectedPriority);
     
+    // Check if badge should be visible
+    if (!settings.badgeVisible) {
+      // Clear the badge if it should be hidden
+      await browser.action.setBadgeText({ text: '' });
+      console.log('Badge hidden per user settings');
+      return;
+    }
+    
+    const badgeConfig = createBadgeConfig(feeData, settings.selectedPriority);
     await updateBadge(badgeConfig);
     
     console.log(`Badge updated: ${badgeConfig.text} (${badgeConfig.level})`);
@@ -144,7 +153,7 @@ async function updateBadgeDisplay(feeData: any) {
 /**
  * Check conditions and send notification if needed
  */
-async function checkAndSendNotification(feeData: any) {
+async function checkAndSendNotification(feeData: FeeData) {
   try {
     const shouldNotify = await shouldSendNotification(feeData);
     
@@ -165,7 +174,7 @@ async function checkAndSendNotification(feeData: any) {
 /**
  * Handle storage changes to update badge when settings change
  */
-async function handleStorageChange(changes: any, area: string) {
+async function handleStorageChange(changes: StorageChangeDetails, area: string) {
   if (area !== 'local') return;
   
   // Check if settings were changed
@@ -189,7 +198,7 @@ async function handleStorageChange(changes: any, area: string) {
 /**
  * Handle runtime messages
  */
-async function handleMessage(message: any) {
+async function handleMessage(message: RuntimeMessage) {
   if (message.type === 'UPDATE_BADGE') {
     console.log('Received badge update request');
     

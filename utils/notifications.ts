@@ -1,8 +1,7 @@
 import type { FeeData, Priority } from './types';
-import { NOTIFICATION_CONFIG } from './constants';
+import { NOTIFICATION_CONFIG, TIME_CONSTANTS } from './constants';
 import { getUserSettings, updateSetting } from './storage';
 import { getFeeValueForPriority } from './storage';
-import { runNotificationDiagnostics, testWebNotificationAPI } from './notification-diagnostics';
 
 /**
  * Check if notification should be sent
@@ -52,7 +51,7 @@ export async function shouldSendNotification(feeData: FeeData): Promise<boolean>
 }
 
 /**
- * Send fee alert notification with fallback methods
+ * Send fee alert notification using Chrome extension API
  */
 export async function sendFeeAlert(feeData: FeeData): Promise<boolean> {
   try {
@@ -67,46 +66,18 @@ export async function sendFeeAlert(feeData: FeeData): Promise<boolean> {
     // Clear any existing notification first
     await clearNotifications();
     
-    // Try Chrome notifications API first
-    try {
-      const notificationId = await browser.notifications.create(NOTIFICATION_CONFIG.ID, {
-        type: NOTIFICATION_CONFIG.TYPE,
-        iconUrl: NOTIFICATION_CONFIG.ICON,
-        title: NOTIFICATION_CONFIG.TITLE,
-        message,
-        requireInteraction: false,
-        priority: 2
-      });
-      
-      console.log(`Fee alert sent via Chrome API: ${message}`);
-      
-      // Verify notification was created
-      const allNotifications = await browser.notifications.getAll();
-      if (Object.keys(allNotifications).length > 0) {
-        return true;
-      }
-      
-      console.warn('Chrome notification created but not visible, trying fallback...');
-    } catch (chromeError) {
-      console.error('Chrome notifications API failed:', chromeError);
-    }
+    // Use Chrome notifications API
+    const notificationId = await browser.notifications.create(NOTIFICATION_CONFIG.ID, {
+      type: NOTIFICATION_CONFIG.TYPE,
+      iconUrl: NOTIFICATION_CONFIG.ICON,
+      title: NOTIFICATION_CONFIG.TITLE,
+      message,
+      requireInteraction: false,
+      priority: 2
+    });
     
-    // Fallback to Web Notifications API if Chrome API fails
-    try {
-      const webSuccess = await testWebNotificationAPI();
-      if (webSuccess) {
-        console.log('Fee alert sent via Web API fallback');
-        return true;
-      }
-    } catch (webError) {
-      console.error('Web Notifications API failed:', webError);
-    }
-    
-    // Last resort: Log diagnostic info
-    const diagnostics = await runNotificationDiagnostics();
-    console.error('All notification methods failed. Diagnostics:', diagnostics);
-    
-    return false;
+    console.log(`Fee alert notification sent: ${message}`);
+    return !!notificationId;
   } catch (error) {
     console.error('Failed to send fee alert notification:', error);
     return false;
@@ -161,20 +132,12 @@ export async function clearNotifications(): Promise<boolean> {
 }
 
 /**
- * Send a test notification with diagnostics
+ * Send a test notification
  */
-export async function sendTestNotification(threshold: number): Promise<{
-  success: boolean;
-  method: 'chrome' | 'web' | 'none';
-  diagnostics: any;
-}> {
-  const diagnostics = await runNotificationDiagnostics();
-  console.log('🔔 Running notification test with diagnostics:', diagnostics);
-  
-  // Try Chrome API
+export async function sendTestNotification(threshold: number): Promise<boolean> {
   try {
     const testId = `test-${Date.now()}`;
-    await browser.notifications.create(testId, {
+    const notificationId = await browser.notifications.create(testId, {
       type: 'basic',
       iconUrl: '/icon/128.png',
       title: '🔔 BTC Fee Alert Test',
@@ -183,24 +146,15 @@ export async function sendTestNotification(threshold: number): Promise<{
       requireInteraction: false
     });
     
-    // Verify it was created
-    const all = await browser.notifications.getAll();
-    if (all[testId]) {
-      setTimeout(() => browser.notifications.clear(testId), 5000);
-      return { success: true, method: 'chrome', diagnostics };
+    if (notificationId) {
+      // Auto-clear after 5 seconds
+      setTimeout(() => browser.notifications.clear(testId), TIME_CONSTANTS.TEST_NOTIFICATION_TIMEOUT_MS);
+      return true;
     }
+    
+    return false;
   } catch (error) {
-    console.error('Chrome API test failed:', error);
+    console.error('Test notification failed:', error);
+    return false;
   }
-  
-  // Try Web API fallback
-  try {
-    if (await testWebNotificationAPI()) {
-      return { success: true, method: 'web', diagnostics };
-    }
-  } catch (error) {
-    console.error('Web API test failed:', error);
-  }
-  
-  return { success: false, method: 'none', diagnostics };
 }

@@ -14,12 +14,19 @@ export async function getUserSettings(): Promise<StorageData> {
       const defaultSettings: StorageData = {
         selectedPriority: DEFAULT_SETTINGS.SELECTED_PRIORITY,
         notificationsEnabled: DEFAULT_SETTINGS.NOTIFICATIONS_ENABLED,
+        badgeVisible: DEFAULT_SETTINGS.BADGE_VISIBLE,
         alertThreshold: undefined,
         lastUpdate: 0,
       };
       
       await saveUserSettings(defaultSettings);
       return defaultSettings;
+    }
+    
+    // Handle migration for existing users who don't have badgeVisible field
+    if (settings.badgeVisible === undefined) {
+      settings.badgeVisible = DEFAULT_SETTINGS.BADGE_VISIBLE;
+      await saveUserSettings(settings);
     }
     
     return settings;
@@ -30,6 +37,7 @@ export async function getUserSettings(): Promise<StorageData> {
     return {
       selectedPriority: DEFAULT_SETTINGS.SELECTED_PRIORITY,
       notificationsEnabled: DEFAULT_SETTINGS.NOTIFICATIONS_ENABLED,
+      badgeVisible: DEFAULT_SETTINGS.BADGE_VISIBLE,
       alertThreshold: undefined,
       lastUpdate: 0,
     };
@@ -63,8 +71,8 @@ export async function updateSetting<K extends keyof StorageData>(
     settings[key] = value;
     const success = await saveUserSettings(settings);
     
-    // If priority changed, trigger badge update via runtime message
-    if (success && key === 'selectedPriority') {
+    // If priority or badge visibility changed, trigger badge update via runtime message
+    if (success && (key === 'selectedPriority' || key === 'badgeVisible')) {
       try {
         await browser.runtime.sendMessage({ type: 'UPDATE_BADGE' });
       } catch (error) {

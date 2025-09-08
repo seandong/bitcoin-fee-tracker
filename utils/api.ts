@@ -1,4 +1,4 @@
-import type { FeeData, ApiResponse, BlockData, MempoolData, FeeRange } from './types';
+import type { FeeData, ApiResponse, BlockData, MempoolData, MempoolBlockData, FeeRange } from './types';
 import { API_CONFIG } from './constants';
 
 /**
@@ -130,7 +130,7 @@ export async function fetchBlockHeight(): Promise<ApiResponse<BlockData>> {
 /**
  * Fetch mempool blocks data to get fee range for next block
  */
-export async function fetchMempoolData(): Promise<ApiResponse<any>> {
+export async function fetchMempoolData(): Promise<ApiResponse<MempoolBlockData>> {
   const timestamp = Date.now();
   
   try {
@@ -180,7 +180,7 @@ export async function fetchMempoolData(): Promise<ApiResponse<any>> {
  * Calculate fee range for next block (block 0) from mempool blocks data
  * Uses mempool.space's mempool-blocks API which provides accurate fee ranges
  */
-export function calculateNextBlockFeeRange(blockData: any): FeeRange {
+export function calculateNextBlockFeeRange(blockData: MempoolBlockData): FeeRange {
   if (!blockData || !Array.isArray(blockData.feeRange) || blockData.feeRange.length === 0) {
     return { min: 0, max: 0 };
   }

@@ -8,39 +8,40 @@ export const API_CONFIG = {
   UPDATE_INTERVAL: 10 * 1000, // 10 seconds
 } as const;
 
+// Time constants (in various units for convenience)
+export const TIME_CONSTANTS = {
+  // Background update interval
+  UPDATE_INTERVAL_MINUTES: 0.5, // 30 seconds in minutes
+  UPDATE_INTERVAL_MS: 30 * 1000, // 30 seconds in milliseconds
+  
+  // Network timeout
+  NETWORK_TEST_TIMEOUT_MS: 5000, // 5 seconds for network connectivity test
+  
+  // Time formatting thresholds
+  JUST_NOW_THRESHOLD_SECONDS: 30, // Show "just now" for updates < 30s ago
+  
+  // Notification auto-clear timeout
+  TEST_NOTIFICATION_TIMEOUT_MS: 5000, // 5 seconds
+} as const;
+
 // Fee level thresholds (sat/vB)
 export const FEE_THRESHOLDS = {
   LOW: 10,
   HIGH: 50,
 } as const;
 
-// Badge colors (semantic UX-based)
-export const BADGE_COLORS = {
-  // Text colors (semantic: low=slow/poor, medium=balanced, high=fast/good)
-  LOW: '#EF4444',    // Red-500 - Slow/Poor UX
-  MEDIUM: '#F59E0B', // Amber-500 - Balanced UX
-  HIGH: '#10B981',   // Green-500 - Fast/Good UX  
-  ERROR: '#6B7280',  // Gray-500 - Error state
-  
-  // Background colors (matching priority label backgrounds)
-  LOW_BG: '#EF4444',    // Red-500 - Slow/Poor UX (same as label)
-  MEDIUM_BG: '#F59E0B', // Amber-500 - Balanced UX (same as label)
-  HIGH_BG: '#10B981',   // Green-500 - Fast/Good UX (same as label)
-  ERROR_BG: '#6B7280',  // Gray-500 - Error state
-} as const;
-
-// Phosphor-inspired design system colors
-export const THEME_COLORS = {
+// Unified color system for the application
+export const COLORS = {
   // Primary palette - sophisticated orange/amber
   PRIMARY: '#F59E0B',     // Amber-500 - more refined than bitcoin orange
   PRIMARY_LIGHT: '#FCD34D', // Amber-300 - lighter variant
   PRIMARY_DARK: '#D97706',  // Amber-600 - darker variant
   PRIMARY_SUBTLE: '#FEF3C7', // Amber-100 - very light background
   
-  // Fee status colors - balanced and accessible
-  FEE_LOW: '#10B981',     // Emerald-500 - fresh green
-  FEE_MEDIUM: '#F59E0B',  // Amber-500 - warm amber
-  FEE_HIGH: '#EF4444',    // Red-500 - clear red
+  // Fee status colors - consistent across all components
+  FEE_LOW: '#10B981',     // Emerald-500 - low fees (good value)
+  FEE_MEDIUM: '#F59E0B',  // Amber-500 - medium fees (balanced)
+  FEE_HIGH: '#EF4444',    // Red-500 - high fees (expensive)
   
   // Neutral palette - clean grays inspired by Phosphor's minimalism
   GRAY_50: '#F9FAFB',     // Lightest background
@@ -59,6 +60,19 @@ export const THEME_COLORS = {
   WARNING: '#F59E0B',
   ERROR: '#EF4444',
   INFO: '#3B82F6',
+} as const;
+
+// Badge-specific color mappings (using unified color system)
+export const BADGE_COLORS = {
+  LOW: COLORS.FEE_LOW,
+  MEDIUM: COLORS.FEE_MEDIUM,
+  HIGH: COLORS.FEE_HIGH,
+  ERROR: COLORS.GRAY_500,
+  
+  LOW_BG: COLORS.FEE_LOW,
+  MEDIUM_BG: COLORS.FEE_MEDIUM,
+  HIGH_BG: COLORS.FEE_HIGH,
+  ERROR_BG: COLORS.GRAY_500,
 } as const;
 
 // Priority information
@@ -85,6 +99,7 @@ export const PRIORITIES: PriorityInfo[] = [
 export const DEFAULT_SETTINGS = {
   SELECTED_PRIORITY: 'halfHourFee' as Priority,
   NOTIFICATIONS_ENABLED: true,
+  BADGE_VISIBLE: true,
   ALERT_THRESHOLD: undefined as number | undefined,
   CACHE_DURATION: 5 * 60 * 1000, // 5 minutes
   BADGE_MAX_VALUE: 99,

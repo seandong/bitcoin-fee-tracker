@@ -9,7 +9,7 @@ export default defineConfig({
     description: 'Real-time Bitcoin network fee monitor with customizable alerts. Track transaction costs and optimize your BTC transfers.',
     version: '1.0.0',
     version_name: '1.0.0',
-    author: 'Your Name',
+    author: { email: 'sindon@gmail.com' },
     permissions: ['storage', 'notifications', 'alarms', 'tabs'],
     host_permissions: ['https://mempool.space/*'],
     action: {

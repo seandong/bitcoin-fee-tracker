@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getUserSettings, updateSetting } from '@/utils/storage';
 import { getNotificationPermission, isNotificationSupported, sendTestNotification } from '@/utils/notifications';
 import { Icons } from '@/utils/icons';
-import type { StorageData, ThemeMode } from '@/utils/types';
+import type { StorageData } from '@/utils/types';
 
 function App() {
   const [settings, setSettings] = useState<StorageData | null>(null);
@@ -12,15 +12,6 @@ function App() {
   const [notificationPermission, setNotificationPermission] = useState<'granted' | 'denied' | 'unknown'>('unknown');
   const [inputValue, setInputValue] = useState<string>('');
 
-  const applyTheme = (theme: ThemeMode) => {
-    const html = document.documentElement;
-    
-    if (theme === 'system') {
-      html.removeAttribute('data-theme');
-    } else {
-      html.setAttribute('data-theme', theme);
-    }
-  };
 
   useEffect(() => {
     loadSettings();
@@ -41,11 +32,6 @@ function App() {
       setSettings(userSettings);
       // Set input value to show current threshold or empty
       setInputValue(userSettings.alertThreshold ? userSettings.alertThreshold.toString() : '');
-      
-      // Apply theme
-      if (userSettings.theme) {
-        applyTheme(userSettings.theme);
-      }
     } catch (error) {
       console.error('Failed to load settings:', error);
     } finally {
@@ -174,18 +160,13 @@ function App() {
                         return;
                       }
 
-                      // Use the new test notification function with diagnostics
-                      const result = await sendTestNotification(settings.alertThreshold!);
+                      // Send test notification
+                      const success = await sendTestNotification(settings.alertThreshold!);
                       
-                      if (result.success) {
-                        if (result.method === 'chrome') {
-                          alert('✅ Chrome notification sent successfully!\n\nThe notification should appear in your system tray.');
-                        } else if (result.method === 'web') {
-                          alert('✅ Notification sent via Web API fallback!\n\nNote: Chrome API may be blocked by OS settings.');
-                        }
+                      if (success) {
+                        alert('✅ Test notification sent successfully!\n\nThe notification should appear in your system tray.');
                       } else {
-                        console.error('Notification test failed with diagnostics:', result.diagnostics);
-                        alert(`⚠️ Notification test failed!\n\nDiagnostics:\n- Browser Support: ${result.diagnostics.browserSupport ? 'Yes' : 'No'}\n- Permission: ${result.diagnostics.extensionPermission}\n- Platform: ${result.diagnostics.platform}\n\nSolutions:\n1. Check NOTIFICATION_GUIDE.md for detailed troubleshooting\n2. Try: chrome://settings/content/notifications\n3. Check OS notification settings for Chrome`);
+                        alert('⚠️ Notification test failed!\n\nPlease check:\n1. Notification permissions in Chrome settings\n2. OS notification settings for Chrome\n3. Do Not Disturb / Focus mode is disabled');
                       }
                     } catch (error) {
                       console.error('❌ Notification test failed:', error);

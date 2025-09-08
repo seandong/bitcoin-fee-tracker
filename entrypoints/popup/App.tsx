@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { getUserSettings, getCachedFeeData } from '@/utils/storage';
-import { PRIORITIES, THEME_COLORS } from '@/utils/constants';
+import { PRIORITIES, TIME_CONSTANTS } from '@/utils/constants';
 import { getFeeLevel } from '@/utils/badge';
-import { isOnline, addNetworkStatusListener } from '@/utils/network';
+import { isOnline, addNetworkStatusListener, testNetworkConnection } from '@/utils/network';
 import { Icons } from '@/utils/icons';
 import { fetchBlockHeight, fetchMempoolData, calculateNextBlockFeeRange } from '@/utils/api';
 import type { FeeData, StorageData, Priority, FeeRange } from '@/utils/types';
@@ -23,6 +23,17 @@ function App() {
 
 
   useEffect(() => {
+    // Check initial network status with actual connectivity test
+    const checkInitialNetwork = async () => {
+      const connected = await testNetworkConnection();
+      setIsOffline(!connected);
+      if (!connected) {
+        setError('You are offline. Please check your internet connection.');
+      }
+    };
+    
+    checkInitialNetwork();
+    
     loadData();
     loadBlockHeight();
     loadNextBlockFeeRange();
@@ -31,13 +42,18 @@ function App() {
     // Set up network status monitoring
     const cleanupNetworkListener = addNetworkStatusListener(
       () => {
+        console.log('Network came back online');
         setIsOffline(false);
         // Auto-refresh data when coming back online
         loadData();
         loadBlockHeight();
         loadNextBlockFeeRange();
       },
-      () => setIsOffline(true)
+      () => {
+        console.log('Network went offline');
+        setIsOffline(true);
+        setError('You are offline. Please check your internet connection.');
+      }
     );
 
     // Set up auto-refresh interval (every 10 seconds)
@@ -70,6 +86,10 @@ function App() {
       }
       setError(null);
 
+      // Check network status first
+      const online = isOnline();
+      setIsOffline(!online);
+
       const [userSettings, cachedFeeData] = await Promise.all([
         getUserSettings(),
         getCachedFeeData(),
@@ -84,7 +104,7 @@ function App() {
         }
       } else {
         // No cached data available, but not necessarily an error
-        if (isOnline()) {
+        if (online) {
           setError('No fee data available yet. Please wait for initial data fetch.');
         } else {
           setError('You are offline. Please check your internet connection.');
@@ -92,7 +112,10 @@ function App() {
       }
     } catch (err) {
       console.error('Failed to load data:', err);
-      if (isOnline()) {
+      const online = isOnline();
+      setIsOffline(!online);
+      
+      if (online) {
         setError('Failed to load fee data. Please try again.');
       } else {
         setError('You are offline. Please check your internet connection.');
@@ -106,17 +129,29 @@ function App() {
 
   const loadBlockHeight = async () => {
     try {
+      if (!isOnline()) {
+        setIsOffline(true);
+        return;
+      }
       const response = await fetchBlockHeight();
       if (response.success && response.data) {
         setBlockHeight(response.data.height);
       }
     } catch (error) {
       console.error('Failed to load block height:', error);
+      if (!isOnline()) {
+        setIsOffline(true);
+        setError('You are offline. Please check your internet connection.');
+      }
     }
   };
 
   const loadNextBlockFeeRange = async () => {
     try {
+      if (!isOnline()) {
+        setIsOffline(true);
+        return;
+      }
       const response = await fetchMempoolData();
       if (response.success && response.data) {
         const feeRange = calculateNextBlockFeeRange(response.data);
@@ -124,6 +159,10 @@ function App() {
       }
     } catch (error) {
       console.error('Failed to load next block fee range:', error);
+      if (!isOnline()) {
+        setIsOffline(true);
+        setError('You are offline. Please check your internet connection.');
+      }
     }
   };
 
@@ -153,7 +192,7 @@ function App() {
     const diffSecs = Math.floor(diffMs / 1000);
     const diffMins = Math.floor(diffSecs / 60);
     
-    if (diffSecs < 30) return 'just now';
+    if (diffSecs < TIME_CONSTANTS.JUST_NOW_THRESHOLD_SECONDS) return 'just now';
     if (diffSecs < 60) return `${diffSecs}s ago`;
     if (diffMins === 1) return '1m ago';
     if (diffMins < 60) return `${diffMins}m ago`;
@@ -169,6 +208,14 @@ function App() {
     }
     // For values < 10, show up to 2 decimal places but remove trailing zeros
     return value.toFixed(2).replace(/\.?0+$/, '');
+  };
+
+  const formatGasRangeValue = (value: number): string => {
+    if (value >= 100) {
+      return Math.round(value).toString();
+    }
+    // For values < 100, show up to 1 decimal place but remove trailing zeros
+    return value.toFixed(1).replace(/\.0$/, '');
   };
 
   const getFeeStatusMessage = (): string => {
@@ -190,17 +237,14 @@ function App() {
   };
 
   const getSelectedPriorityColor = (): string => {
-    if (!feeData || !settings) return 'var(--primary)';
+    if (!settings || !settings.badgeVisible) return 'var(--badge-disabled)';
     
-    const selectedFee = feeData[settings.selectedPriority];
-    const level = getFeeLevel(selectedFee);
-    
-    switch (level) {
-      case 'low':
+    switch (settings.selectedPriority) {
+      case 'hourFee':      // Low priority = Green (low fees, good value)
         return 'var(--fee-low)';
-      case 'medium':
+      case 'halfHourFee':  // Medium priority = Amber (balanced)
         return 'var(--fee-medium)';
-      case 'high':
+      case 'fastestFee':   // High priority = Red (high fees, expensive)
         return 'var(--fee-high)';
       default:
         return 'var(--primary)';
@@ -221,7 +265,7 @@ function App() {
     );
   }
 
-  if (error || !feeData) {
+  if (error || !feeData || isOffline) {
     return (
       <div className="popup-container">
         <div className="popup-header">
@@ -230,23 +274,34 @@ function App() {
             <Icons.Settings size={18} color="var(--text-secondary)" />
           </button>
         </div>
-        <div className="error">
-          <p>
-            {isOffline ? <Icons.WifiOff size={16} color="var(--fee-high)" /> : <Icons.AlertTriangle size={16} color="var(--fee-medium)" />}
-            <span>{error || 'No fee data available'}</span>
-          </p>
-          {isOffline && (
-            <p className="network-status">
-              <Icons.Signal size={14} color="var(--fee-high)" />
-              <span>Offline</span>
-            </p>
-          )}
+        <div className="error-state">
+          <div className="error-content">
+            <div className="error-icon">
+              {isOffline ? (
+                <Icons.WifiOff size={24} color="#708070" />
+              ) : (
+                <Icons.AlertTriangle size={24} color="#708070" />
+              )}
+            </div>
+            <div className="error-text">
+              <h3>{isOffline ? 'You\'re offline' : 'Unable to load fee data'}</h3>
+              <p>
+                {error || (isOffline 
+                  ? 'Please check your internet connection and try again.' 
+                  : 'There seems to be an issue loading Bitcoin fee data.'
+                )}
+              </p>
+            </div>
+          </div>
           <button 
-            onClick={loadData} 
+            onClick={() => {
+              setError(null);
+              loadData(true);
+            }}
             className="retry-btn"
             disabled={isOffline}
           >
-            {isOffline ? 'Waiting for connection...' : 'Retry'}
+            {isOffline ? 'Waiting for connection...' : 'Try Again'}
           </button>
         </div>
       </div>
@@ -258,97 +313,99 @@ function App() {
       <div className="popup-header">
         <h1><img src="/icon/32.png" alt="BTC Fee Tracker" style={{ width: 18, height: 18 }} /> BTC Fee Tracker</h1>
         <div className="header-actions">
-          <button 
-            className={`alert-btn ${settings?.alertThreshold ? 'alert-active' : ''}`} 
-            onClick={openAlertSettings} 
-            title={settings?.alertThreshold 
-              ? `Alert set for ≤${settings.alertThreshold} sat/vB` 
-              : "Set fee alert threshold"
-            }
-          >
-            <Icons.Bell 
-              size={16} 
-              color="currentColor"
-              weight="regular"
-            />
-          </button>
+          {settings?.alertThreshold ? (
+            <button 
+              className="alert-threshold-header" 
+              onClick={openAlertSettings}
+              title={`Alert: ≤${settings.alertThreshold} sat/vB - click to modify fee alert threshold`}
+            >
+              <span className="alert-threshold-value">≤{settings.alertThreshold} sat/vB</span>
+            </button>
+          ) : (
+            <button 
+              className="alert-btn" 
+              onClick={openAlertSettings} 
+              title="Set fee alert threshold"
+            >
+              <Icons.Bell 
+                size={16} 
+                color="currentColor"
+                weight="regular"
+              />
+            </button>
+          )}
           <button className="settings-btn" onClick={openOptions} title="Settings">
             <Icons.Settings size={16} color="currentColor" weight="regular" />
           </button>
         </div>
       </div>
 
-      <div className="fee-cards">
-        {PRIORITIES.map((priority, index) => {
-          const feeValue = feeData[priority.key];
-          const level = getFeeLevel(feeValue);
-          const isSelected = settings?.selectedPriority === priority.key;
-          
-          return (
-            <div 
-              key={priority.key}
-              className={`fee-card ${level}`}
-              title={`${priority.name}: ${Math.round(feeValue)} sat/vB${isSelected ? ' (currently displayed on badge)' : ''}`}
-            >
-              <div className="fee-value">{formatFeeValue(feeValue)}</div>
-              <div className="fee-unit">sat/vB</div>
-              <div className="fee-label">{priority.description}</div>
-              {isSelected && (
-                <div className="selected-indicator"></div>
-              )}
-            </div>
-          );
-        })}
+      <div className="main-content">
+        <div className="fee-cards">
+          {PRIORITIES.map((priority, index) => {
+            const feeValue = feeData[priority.key];
+            const level = getFeeLevel(feeValue);
+            const isSelected = settings?.selectedPriority === priority.key && settings?.badgeVisible;
+            
+            return (
+              <div 
+                key={priority.key}
+                className={`fee-card ${level}`}
+                title={`${priority.name}: ${Math.round(feeValue)} sat/vB${isSelected ? ' (currently displayed on badge)' : ''}`}
+              >
+                <div className="fee-value">{formatFeeValue(feeValue)}</div>
+                <div className="fee-unit">sat/vB</div>
+                <div className="fee-label">{priority.description}</div>
+                {isSelected && (
+                  <div className="selected-indicator"></div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="status-section">
-        <div className="status-row">
-          {lastUpdate && (
-            <div className="last-update">
-              <Icons.Clock size={12} color="currentColor" weight="regular" />
-              <span>Updated {formatTimeAgo(lastUpdate)}</span>
-            </div>
-          )}
-          <div className="combined-info">
-            {nextBlockFeeRange && (
-              <button 
-                className="next-block-values"
-                onClick={() => browser.tabs.create({ url: 'https://mempool.space/mempool-block/0' })}
-                title="Next block fee range - estimated fees for upcoming Bitcoin block"
-              >
-                <span className="next-block-label">Next Block</span>
-                <span className="next-block-range">{formatFeeValue(nextBlockFeeRange.min)} ~ {formatFeeValue(nextBlockFeeRange.max)} sat/vB</span>
-              </button>
+      <div className="block-footer">
+        <div 
+          className="next-block-values"
+          title={nextBlockFeeRange ? `Next block: ${formatGasRangeValue(nextBlockFeeRange.min)}-${formatGasRangeValue(nextBlockFeeRange.max)} sat/vB` : "Loading next block fees..."}
+        >
+          <span className="next-block-range">
+            {loading && !nextBlockFeeRange ? (
+              <Icons.Loader2 size={10} color="currentColor" className="loading-spinner" />
+            ) : nextBlockFeeRange ? (
+              `${formatGasRangeValue(nextBlockFeeRange.min)} ~ ${formatGasRangeValue(nextBlockFeeRange.max)} sat/vB`
+            ) : (
+              'Loading...'
             )}
-            {nextBlockFeeRange && (blockHeight || loading) && <div className="divider"></div>}
-            <button 
-              className="block-height" 
-              onClick={openMempool}
-              title="Open mempool.space"
-            >
-              <span className="block-label">Block</span>
-              <span className="block-number">
-                {loading ? (
-                  <Icons.Loader2 size={10} color="currentColor" className="loading-spinner" />
-                ) : blockHeight ? (
-                  blockHeight.toLocaleString()
-                ) : (
-                  'Loading...'
-                )}
-              </span>
-            </button>
-          </div>
-          {settings?.alertThreshold && (
-            <button 
-              className="alert-threshold" 
-              onClick={openAlertSettings}
-              title="Fee alert threshold - click to modify"
-            >
-              <span className="alert-threshold-label">Alert</span>
-              <span className="alert-threshold-value">≤{settings.alertThreshold} sat/vB</span>
-            </button>
-          )}
+          </span>
         </div>
+        <div className="divider"></div>
+        <div 
+          className="block-height"
+          title={loading ? 'Loading...' : blockHeight ? `Current block: #${blockHeight.toLocaleString()}` : 'Loading...'}
+        >
+          <span className="block-number">
+            {loading ? (
+              <Icons.Loader2 size={10} color="currentColor" className="loading-spinner" />
+            ) : blockHeight ? (
+              blockHeight.toLocaleString()
+            ) : (
+              'Loading...'
+            )}
+          </span>
+        </div>
+        <button 
+          className="info-btn-inline" 
+          onClick={() => browser.tabs.create({ url: 'https://mempool.space' })}
+          title={`Data from Mempool.space${lastUpdate ? ` • ${formatTimeAgo(lastUpdate)}` : ''}`}
+        >
+          <Icons.ExternalLink 
+            size={14} 
+            color="currentColor"
+            weight="regular"
+          />
+        </button>
       </div>
     </div>
   );

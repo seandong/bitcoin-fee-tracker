@@ -1,12 +1,36 @@
 /**
  * Network status utilities
  */
+import { TIME_CONSTANTS } from './constants';
 
 /**
  * Check if device is online
  */
 export function isOnline(): boolean {
   return navigator.onLine;
+}
+
+/**
+ * Test actual network connectivity by making a lightweight request to mempool.space
+ */
+export async function testNetworkConnection(): Promise<boolean> {
+  if (!navigator.onLine) {
+    return false;
+  }
+  
+  try {
+    // Use a lightweight endpoint from the same API we use for fee data
+    const response = await fetch('https://mempool.space/api/blocks/tip/height', {
+      method: 'HEAD',
+      mode: 'cors',
+      cache: 'no-cache',
+      signal: AbortSignal.timeout(TIME_CONSTANTS.NETWORK_TEST_TIMEOUT_MS)
+    });
+    return response.ok;
+  } catch (error) {
+    console.log('Network connectivity test failed:', error);
+    return false;
+  }
 }
 
 /**
