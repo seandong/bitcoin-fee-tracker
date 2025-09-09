@@ -1,6 +1,6 @@
 # Privacy Policy for Bitcoin Fee Tracker
 
-*Last updated: August 2025*
+*Last updated: September 2025*
 
 ## Overview
 
@@ -17,11 +17,13 @@ Bitcoin Fee Tracker ("the Extension") is committed to protecting your privacy. T
 
 ### What We Store Locally
 All data is stored locally on your device using Chrome's storage API:
-- Your selected fee priority preference
-- Alert threshold settings
-- Theme preference (light/dark/auto)
-- Cached fee data for offline access
+- Your selected fee priority preference (Low/Medium/High)
+- Badge visibility settings (show/hide fee information on browser toolbar)
+- Alert threshold settings for fee notifications
+- Notification preferences (enabled/disabled)
+- Cached Bitcoin fee data for performance
 - Last update timestamp
+- Anti-spam notification state to prevent duplicate alerts
 
 This data never leaves your device and is not transmitted to any servers.
 
@@ -36,11 +38,13 @@ The Extension uses the following third-party service:
 ## Permissions Usage
 
 The Extension requires certain permissions to function:
-- **Storage**: Save your preferences locally
-- **Notifications**: Alert you when fees meet your criteria
-- **Alarms**: Schedule periodic fee updates
-- **Tabs**: Open settings and external links
-- **Host permissions (mempool.space)**: Fetch fee data
+- **Storage**: Save your preferences and settings locally on your device
+- **Notifications**: Send alerts when Bitcoin network fees drop below your threshold
+- **Alarms**: Schedule automatic fee updates every 30 seconds
+- **Tabs**: Open extension settings pages and external links (like mempool.space)
+- **Host permissions (mempool.space)**: Fetch real-time Bitcoin fee data from the public API
+
+No permission is used to collect, track, or transmit personal information.
 
 ## Data Security
 
@@ -68,12 +72,12 @@ We may update this privacy policy from time to time. Any changes will be reflect
 ## Open Source
 
 This extension is open source. You can review the code at:
-[GitHub Repository URL]
+https://github.com/seandong/bitcoin-fee-tracker
 
 ## Contact
 
 If you have questions about this privacy policy or the extension, please contact:
-[Your Contact Email]
+Sean Dong - sindon@gmail.com
 
 ## Compliance
 
